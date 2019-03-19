@@ -1,0 +1,22 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{{ homework_name }}_{{ student_name }}_{{ file_name }}</title>
+    <link rel="icon" href="{% static "images/dsa.png" %}" sizes="32x32">
+    <link href="{% static "bootstrap-3.3.7-dist/css/bootstrap.css" %}" rel="stylesheet">
+    <link href="{% static "bootstrap-3.3.7-dist/css/bootstrap-theme.css" %}" rel="stylesheet">
+    <link href="{% static "bootstrap-fileinput/css/fileinput.css" %}" rel="stylesheet">
+    <link href="{% static "prism/prism.css" %}" rel="stylesheet">
+</head>
+<body>
+<div style="height:100vh;width:100vw;overflow: hidden">
+    <embed src="{% url "pdf_stream" file_id %}" type="application/pdf"
+           style="height: 100%;width: 100%">
+</div>
+<body>
+
+</body>
+</html>

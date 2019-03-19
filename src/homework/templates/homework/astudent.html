@@ -1,0 +1,177 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>学生信息</title>
+    <link rel="icon" href="{% static "images/dsa.png" %}" sizes="32x32">
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link href="{% static "bootstrap-fileinput/css/fileinput.css" %}" rel="stylesheet">
+    <link href="{% static "bootstrap-3.3.7-dist/css/mine.css" %}" rel="stylesheet">
+    <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.3.1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+            crossorigin="anonymous"></script>
+    <script src="{% static "bootstrap-fileinput/js/fileinput.js" %}"></script>
+    <script src="{% static "bootstrap-fileinput/js/locales/zh.js" %}"></script>
+    <link href="{% static "bootstrap-star/css/star-rating.min.css" %}" media="all" rel="stylesheet" type="text/css"/>
+    <script src="{% static "bootstrap-star/js/star-rating.min.js" %}" type="text/javascript"></script>
+    <script>
+        function submit_score(submitId, submitTime) {
+            var score = $("#" + submitId + "_score").val();
+            if (score == "") {
+                return 0;
+            }
+            var tac = $("#" + submitId + "_tac").prop("checked");
+            var comment = $("#" + submitId + "_comment").val();
+            $.ajax({
+                type: "POST",
+                url: "{% url "a_score" %}",
+                data: {
+                    "submit_id": submitId,
+                    "submit_time": submitTime,
+                    "score": score,
+                    "tac": tac,
+                    "comment": comment,
+                    "csrfmiddlewaretoken": '{{ csrf_token }}'
+                },
+                dataType: "json",
+                success: function (data) {
+                    document.getElementById(submitId + "_score").value = "";
+                    document.getElementById(submitId + "_comment").value = "";
+                    if (data["success"]) {
+                        $("#" + submitId + "_now").text(data["score"]);
+                        $("#" + submitId + "_comment").attr("placeholder", data["comment"]);
+                        $("#" + submitId + "_assistant").text(data["assistant"]);
+                        $("#" + submitId + "_tac").prop("checked", data["tac"]);
+                        $("#" + submitId + "_score").rating('update', data["score"]);
+                    } else {
+                        alert(data["message"]);
+                        location.reload()
+                    }
+                }
+            });
+        }
+
+        function change(radio_id) {
+            var status = $('#' + radio_id).prop("checked");
+            if (status) {
+                $('#' + radio_id).removeAttr("checked")
+            } else {
+                $('#' + radio_id).prop("checked", true);
+            }
+        }
+    </script>
+    <style>$enable-responsive-font-sizes:true;</style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="{% url "a_index" %}">Home</a>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item active">
+                <button class="btn btn-outline-success"><a href="{% url "a_logout" %}">Log out</a></button>
+            </li>
+        </ul>
+    </div>
+</nav>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col"><h5>学生信息</h5></div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <h6>
+                姓名：{{ student.name }}&nbsp;&nbsp;&nbsp;学院：{{ student.school }}&nbsp;&nbsp;&nbsp;学号：{{ student.student_id }}
+            </h6>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <table class="table table-hover table-sm">
+                <thead class="thead-light">
+                <tr>
+                    <th>作业</th>
+                    <th>提交时间</th>
+                    <th>分数</th>
+                    <th>评语</th>
+                    <th>评分人</th>
+                    <th>需下载</th>
+                    <th>预览</th>
+                    <th>评分</th>
+                    <th>tac</th>
+                    <th>反馈</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for h in homeworks %}
+                    <tr>
+                        <td style="vertical-align: middle">{{ h.name }}</td>
+                        <td style="vertical-align: middle">{{ h.submit_time }}
+                            {% if s.late %}
+                                <span class="badge badge-secondary">补交</span>
+                            {% endif %}
+                        </td>
+                        <td id="{{ h.submit_id }}_now" style="vertical-align: middle">{{ h.score }}</td>
+                        <td style="vertical-align: middle">{{ h.comment }}</td>
+                        <td id="{{ h.submit_id }}_assistant" style="vertical-align: middle">
+                            {% if h.scored %}
+                                {{ h.assistant_name }}
+                            {% else %}
+                                ——
+                            {% endif %}
+                        </td>
+                        <td style="vertical-align: middle">
+                            <button type="button" class="btn btn-link btn-sm">
+                                <a onclick="for(var i=0;i< {{ h.downloads }}.length;i++){window.open({{ h.downloads }}[i], '_blank').location;}">{{ h.downloads|length }}
+                                    个文件</a>
+                            </button>
+                        </td>
+                        <td style="vertical-align: middle">
+                            <button type="button" class="btn btn-link btn-sm">
+                                <a onclick="for(var i=0;i< {{ h.previews }}.length;i++){window.open({{ h.previews }}[i], '_blank').location;}">{{ h.previews|length }}
+                                    可预览</a>
+                            </button>
+                        </td>
+                        <td style="vertical-align: middle">
+                            <input id="{{ h.submit_id }}_score" type="number" class="rating" min=0 max=5 step=1 data-size="xs">
+                            <script type="application/javascript">
+                                $("#{{ h.submit_id }}_score").rating({showCaption:false,animate:false,clearValue:0});
+                                $("#{{ h.submit_id }}_score").rating('update',{{ h.score }});
+                            </script>
+                        </td>
+                        <td style="vertical-align: middle">
+                            <input id="{{ h.submit_id }}_tac" class="checkbox" type="checkbox"
+                                   style="width: 20px;height:20px">
+                            <script type="application/javascript">
+                                {%  if h.tac %}
+                                    $("#{{ h.submit_id }}_tac").prop("checked", true);
+                                {% else %}
+                                    $("#{{ h.submit_id }}_tac").prop("checked", false);
+                                {% endif %}
+                            </script>
+                        </td>
+                        <td style="width: 20vw;vertical-align: middle" class="text-center">
+                            <textarea id="{{ h.submit_id }}_comment" style="width: 20vw;resize: none"
+                                      class="center"></textarea>
+                        </td>
+                        <td style="width: 5vw;vertical-align: middle">
+                            <button type="button"  class="btn tn-outline-primary float-right"
+                                    onclick="submit_score('{{ h.submit_id }}','{{ h.time_stamp }}')">提交
+                            </button>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

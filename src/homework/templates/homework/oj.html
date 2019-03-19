@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>OJ</title>
+    <link rel="icon" href="{% static "images/dsa.png" %}" sizes="32x32">
+    <link href="{% static "bootstrap-3.3.7-dist/css/bootstrap.css" %}" rel="stylesheet">
+    <link href="{% static "bootstrap-3.3.7-dist/css/bootstrap-theme.css" %}" rel="stylesheet">
+    <link href="{% static "bootstrap-fileinput/css/fileinput.css" %}" rel="stylesheet">
+</head>
+<body>
+<div>
+    <ul class="nav nav-pills">
+        <li role="presentation"><a href="{% url "profile" %}">Home</a></li>
+        <li role="presentation"><a href="{% url "oj" %}">Online Judge</a></li>
+        <li role="presentation" style="float: right;"><a href={% url "logout" %}>退出</a></li>
+    </ul>
+    <div style="padding-top:1vh;">
+        <div class="panel">
+            <div class="panel-body">
+                <table class="table">
+                    <thead class="panel-heading">
+                    <tr style="font-weight: bold">
+                        <th style="width: 4vw"><h3 class="panel-title">#</h3></th>
+                        <th><h3 class="panel-title">Title</h3></th>
+                        <th><h3 class="panel-title">Acceptance</h3></th>
+                        <th><h3 class="panel-title">Mine</h3></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for q in questions %}
+                        <tr>
+                            <td style="vertical-align: middle">
+                                {{ q.index }}
+                            </td>
+                            <td style="vertical-align: middle">
+                                <a href="{% url "question" q.id %}">{{ q.name }}</a>
+                            </td>
+                            <td style="vertical-align: middle">
+                                {{ q.acceptance }}
+                            </td>
+                            <td style="vertical-align: middle">
+                                <a href="{% url "my_code" q.id %}">{{ oj_submit.accept }}/{{ oj_submit.submit }}</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="{% static "bootstrap-3.3.7-dist/js/jquery-3.3.1.js" %}"></script>
+<script src="{% static "bootstrap-3.3.7-dist/js/bootstrap.js" %}"></script>
+<script src="{% static "bootstrap-3.3.7-dist/js/bootstrap.min.js" %}"></script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>我的作业</title>
+    <link rel="icon" href="{% static "images/dsa.png" %}" sizes="32x32">
+    <link href="{% static "bootstrap-3.3.7-dist/css/bootstrap.css" %}" rel="stylesheet">
+    <link href="{% static "bootstrap-3.3.7-dist/css/bootstrap-theme.css" %}" rel="stylesheet">
+    <link href="{% static "bootstrap-fileinput/css/fileinput.css" %}" rel="stylesheet">
+</head>
+<body>
+<script src="{% static "bootstrap-3.3.7-dist/js/jquery-3.3.1.js" %}"></script>
+<script src="{% static "bootstrap-3.3.7-dist/js/bootstrap.js" %}"></script>
+<script src="{% static "bootstrap-3.3.7-dist/js/bootstrap.min.js" %}"></script>
+<script src="{% static "bootstrap-fileinput/js/fileinput.js" %}"></script>
+<script src="{% static "bootstrap-fileinput/js/locales/zh.js" %}"></script>
+<script>
+    function initFileInput(ctrlID, hId, subID) {
+        var control = $('#' + ctrlID);
+        control.fileinput({
+            language: 'zh',
+            uploadUrl: "/upload/", //上传的地址
+            allowedFileExtensions: ['zip', '7z', 'rar', 'py', 'pdf', 'doc', 'docx'],//接收的文件后缀
+            uploadExtraData: {
+                "csrfmiddlewaretoken": '{{ csrf_token }}', //csrf
+                "homework_id": hId
+            }
+        }).on("fileuploaded", function (event, data) {
+            if (data.response.success) {
+                $('#' + subID).text("已提交");
+                alert("提交成功！");
+                location.reload();
+            }
+            else {
+                alert("提交失败！");
+                location.reload();
+            }
+        })
+    }
+
+    function submit_late(ctrlID, hId, subID) {
+        alert("补交作业将被降级评分，且补交后无法保留先前文件与评分，请慎重！");
+        var control = $('#' + ctrlID);
+        control.html("<input style='width: 20vw' id='once_upload' type='file' class='file' data-show-preview='false'/>");
+        initFileInput('once_upload', hId, subID);
+    }
+</script>
+<div style="height: 100vh">
+    <ul class="nav nav-pills">
+        <li role="presentation"><a href="/index/">Home</a></li>
+        <li role="presentation"><a href="/oj/">Online Judge</a></li>
+        <li role="presentation" style="float: right;"><a href="/logout/">退出</a></li>
+    </ul>
+    <div style="padding-top:1vh;">
+        <div class="panel">
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                    姓名：{{ student.name }}&nbsp;&nbsp;&nbsp;学院：{{ student.school }}&nbsp;&nbsp;&nbsp;学号：{{ student.student_id }}
+                </h3>
+            </div>
+            <div class="panel-body">
+                <table class="table">
+                    <tr>
+                        <th>作业</th>
+                        <th>截止日期</th>
+                        <th>提交情况</th>
+                        <th>查看提交</th>
+                        <th>成绩</th>
+                        <th>反馈</th>
+                        <th>提交</th>
+                    </tr>
+                    {% for h in homeworks %}
+                        <tr>
+                            <td style="vertical-align: middle">{{ h.name }}</td>
+                            <td style="vertical-align: middle">{{ h.cutoff }}</td>
+                            {% if h.last_submit %}
+                                <td style="vertical-align: middle">
+                                    {{ h.last_submit }}
+                                    {% if h.late %}
+                                        补交
+                                    {% endif %}
+                                </td>
+                            {% else %}
+                                <td id="{{ h.id }}_isSubmit" style="vertical-align: middle">未提交</td>
+                            {% endif %}
+                            {% if h.last_submit %}
+                                <td style="vertical-align: middle">
+                                    <a href="/download/?homework_id={{ h.id }}">{{ h.file }}</a>
+                                </td>
+                            {% else %}
+                                <td id="{{ h.id }}_isSubmit" style="vertical-align: middle">未提交</td>
+                            {% endif %}
+                            {% if h.score %}
+                                <td style="vertical-align: middle">{{ h.score }}</td>
+                            {% else %}
+                                <td style="vertical-align: middle">—</td>
+                            {% endif %}
+                            <td style="vertical-align: middle"><p>{{ h.comment }}</p></td>
+                            {% if h.can_submit %}
+                                {% if h.late_submit %}
+                                    <td id="{{ h.id }}_late" style="vertical-align: middle">
+                                        <a onclick="submit_late('{{ h.id }}_late', '{{ h.id }}', '{{ h.id }}_isSubmit')"
+                                           style="cursor:pointer">补交</a>
+                                    </td>
+                                {% else %}
+                                    <td style="width: 25vw;vertical-align: middle">
+                                        <input style="width: 20vw" id="{{ h.id }}_upload" type="file" class="file"
+                                               data-show-preview="false"/>
+                                        <script>
+                                            initFileInput("{{ h.id }}_upload", "{{ h.id }}", "{{ h.id }}_isSubmit");
+                                        </script>
+                                    </td>
+                                {% endif %}
+                            {% else %}
+                                <td>提交关闭</td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+    {#    <div style="padding-top:5vh;padding-left:5vw;padding-right:5vw">#}
+    {#        <h3 style="float:left;">慕课成绩</h3>#}
+    {#        <table class="table">#}
+    {#            <tr>#}
+    {#                <th>测验</th>#}
+    {#                <th>成绩</th>#}
+    {#            </tr>#}
+    {#            <tr>#}
+    {#                <td>第一章 概论 课后作业（总分17分）</td>#}
+    {#                <td>{{ moocScore.chapter_1 }}#}
+    {#            </tr>#}
+    {#            <tr>#}
+    {#                <td>第二章 线性表作业（总分13分）</td>#}
+    {#                <td>{{ moocScore.chapter_2 }}#}
+    {#            </tr>#}
+    {#            <tr>#}
+    {#                <td>第三章 栈与队列测验（总分14分）</td>#}
+    {#                <td>{{ moocScore.chapter_3 }}#}
+    {#            </tr>#}
+    {#            <tr>#}
+    {#                <td>第四章 字符串测验（总分27分）</td>#}
+    {#                <td>{{ moocScore.chapter_4 }}#}
+    {#            </tr>#}
+    {#        </table>#}
+    {#    </div>#}
+
+
+    <div style="float: bottom;">
+        <div class="alert alert-link alert-dismissible" role="alert" style="float:right;width:30vw">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                    aria-hidden="true">&times;</span></button>
+            <h6>Tips:</h6>
+            <p>✎ 浏览器弹出提示且页面提交情况显示文件链接方可确认提交成功</p>
+            <p>✎ 请尽量直接提交py文件</p>
+            <p>✎ 仅可提交py,zip,rar,7z,doc,docx,pdf</p>
+            <p>✎ 上传组件不支持IE，请用Chrome或Firefox打开</p>
+            <p>✎ 补交关闭时间在下一次作业截止（进入补交）时间</p>
+            <p>✎ 有成绩问题联系助教冀锐</p>
+        </div>
+    </div>
+    <div style="float: bottom;max-width: 50%">
+        <div class="alert alert-link alert-dismissible" role="alert" style="float:left;">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                    aria-hidden="true">&times;</span></button>
+            <div style="width: 1%;display:table;">
+                <div style="width: 100%;text-align: center">
+                    <p style="font-weight:bold;">{{ xkcd.safe_title }}</p>
+                </div>
+                <div style="width:auto">
+                    <img id="xkcd" style="margin: 0 auto" src="{{ xkcd.img }}">
+                    <div style="width:auto;word-wrap: break-word;word-break: break-all;overflow: hidden;">{{ xkcd.alt }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

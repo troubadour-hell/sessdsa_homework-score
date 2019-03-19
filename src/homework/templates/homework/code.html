@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ homework_name }}_{{ student_name }}_{{ file_name }}</title>
+    <link rel="icon" href="{% static "images/dsa.png" %}" sizes="32x32">
+    <link href="{% static "prism/prism.css" %}" rel="stylesheet">
+    <script src="{% static "prism/prism.js" %}"></script>
+    <script type="text/javascript"
+            src="{% static "Brython-3.7.1/brython.js" %}">
+    </script>
+    <script type="text/javascript"
+            src="{% static "Brython-3.7.1/brython_stdlib.js" %}">
+    </script>
+    <style>
+        .flexbox-container {
+            display: -ms-flex;
+            display: -webkit-flex;
+            display: flex;
+            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+        }
+
+        .flexbox-container > div {
+            width: 50%;
+            background: #f5f2f0;
+            margin-left: 20px;
+        }
+
+        .flexbox-container > div:first-child {
+            background: #fff;
+             margin-left: 0;
+        }
+
+    </style>
+</head>
+<body id="body">
+<div class="flexbox-container">
+    <div>
+<pre class="line-numbers" data-start="0" style="margin-top: 0"><code class="language-python"
+                                               style="white-space: pre-wrap">{{ code }}</code></pre>
+    </div>
+    <div style="padding-left: 20px;padding-top: 20px;font-size:large">
+        <code id="result">
+        </code>
+    </div>
+</div>
+<script id="pycode" type="text/python">{{ code|safe }}</script>
+<script type="text/javascript">
+    document.getElementById("result").write = function (s) {
+        this.innerHTML += s + "<br>";
+    }
+    document.getElementById("body").onload = function () {
+        var pycode = document.getElementById("pycode");
+        var code = pycode.innerText.replace(/\u{a0}/ug, " ");
+        pycode.innerHTML = `
+from browser import document
+import sys
+sys.stderr=document["result"]
+sys.stdout=document["result"]
+` + code +
+`
+{{ just_code|safe }}
+`;
+        brython({debug: 1})
+    }
+
+</script>
+</body>
+</html>

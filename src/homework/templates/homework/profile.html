@@ -1,0 +1,260 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>我的作业</title>
+    <link rel="icon" href="{% static "images/dsa.png" %}" sizes="32x32">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.5.2/css/fileinput.min.css" media="all"
+          rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" crossorigin="anonymous">
+    <link href="{% static "bootstrap-3.3.7-dist/css/mine.css" %}" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.5.2/js/plugins/piexif.min.js"
+            type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.5.2/js/plugins/sortable.min.js"
+            type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.5.2/js/plugins/purify.min.js"
+            type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.5.2/js/fileinput.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.5.2/themes/fas/theme.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.5.2/js/locales/zh.js"></script>
+    <script src="{% static "bootstrap-fileinput/themes/fas/theme.js" %}"></script>
+    <script>
+        function initFileInput(ctrlID, hId, subID, fileType) {
+            $('#' + ctrlID).fileinput({
+                uploadAsync: false,
+                language: 'zh',
+                uploadUrl: "{% url "upload" %}", //上传的地址
+                allowedFileExtensions: fileType,//['zip', '7z', 'rar', 'py', 'pdf', 'doc', 'docx', 'tex', 'png', 'jpg', 'jpeg'],//接收的文件后缀
+                uploadExtraData: {
+                    "csrfmiddlewaretoken": '{{ csrf_token }}', //csrf
+                    "homework_id": hId,
+                }
+            }).on("filebatchuploadsuccess", function (event, data) {
+                if (data.response.success) {
+                    $('#' + subID).text("已提交");
+                    alert(data.response.number + "个文件提交成功！");
+                    location.reload();
+                } else {
+                    if (data.response.message) {
+                        alert(data.response.message)
+                    } else {
+                        alert("提交失败！")
+                    }
+                    location.reload();
+                }
+            })
+        }
+
+        function submit_late(ctrlID, hId, subID) {
+            alert("补交作业将被降级评分，且补交后无法保留先前文件与评分，请慎重！");
+            var control = $('#' + ctrlID + "_late");
+            control.html("<button type='button' class='btn btn-primary btn-sm' data-toggle='modal' data-target='#exampleModal_" + hId + "'>开始</button>");
+        }
+    </script>
+    <style>
+        $enable-responsive-font-sizes:true;
+        p {
+            font-size: small;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-expand-sm navbar-expand-md navbar-light bg-light">
+    <div class="navbar-brand">
+        <img src="{% static "images/dsa.png" %}" width="35" height="35" class="d-inline-block align-center" alt=""> 数据结构与算法
+    </div>
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item active">
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit"><a href="{% url "logout" %}">Log out</a>
+                </button>
+            </li>
+        </ul>
+    </div>
+</nav>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col">
+            <div class="panel">
+                <div class="panel-heading">
+                    <h6 class="panel-title">
+                        姓名：{{ student.name }}&nbsp;&nbsp;&nbsp;学院：{{ student.school }}&nbsp;&nbsp;&nbsp;学号：{{ student.student_id }}
+                    </h6>
+                </div>
+                <div class="panel-body">
+                    <table class="table table-hover">
+                        <tr>
+                            <th>作业</th>
+                            <th>内容</th>
+                            <th>截止日期</th>
+                            <th>提交情况</th>
+                            <th>查看提交</th>
+                            <th>成绩</th>
+                            <th>反馈</th>
+                            <th>提交</th>
+                        </tr>
+                        {% for h in homeworks %}
+                            <tr>
+                                <td style="vertical-align: middle">{{ h.name }}</td>
+                                <td style="vertical-align: middle">{{ h.description }}</td>
+                                <td style="vertical-align: middle">{{ h.cutoff }}</td>
+                                {% if h.last_submit %}
+                                    <td style="vertical-align: middle">
+                                        {{ h.last_submit }}
+                                        {% if h.late %}
+                                            <span class="badge badge-secondary">补交</span>
+                                        {% endif %}
+                                    </td>
+                                {% else %}
+                                    <td id="{{ h.id }}_isSubmit" style="vertical-align: middle">未提交</td>
+                                {% endif %}
+                                {% if h.last_submit %}
+                                    <td style="vertical-align: middle">
+                                        <a href="{% url "download" h.id %}">{{ h.file_num }}个文件</a>
+                                    </td>
+                                {% else %}
+                                    <td id="{{ h.id }}_isSubmit" style="vertical-align: middle">未提交</td>
+                                {% endif %}
+                                {% if h.score %}
+                                    <td style="vertical-align: middle">{{ h.score }}
+                                    {% if h.tac %}
+                                            <span class="badge badge-success">tac</span>
+                                    {% endif %}
+                                    </td>
+                                {% else %}
+                                    <td style="vertical-align: middle">—</td>
+                                {% endif %}
+                                <td style="vertical-align: middle"><p>{{ h.comment }}</p></td>
+                                {% if h.can_submit %}
+                                    <div class="modal fade" id="exampleModal_{{ h.id }}" tabindex="-1" role="dialog"
+                                         aria-labelledby="exampleModalLabel_{{ h.id }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-lg" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="exampleModalLabel_{{ h.id }}">作业提交</h5>
+                                                    <button type="button" class="close" data-dismiss="modal"
+                                                            aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <h5 style="color:red;white-space:pre-wrap">{{ h.tip|safe }}</h5>
+                                                    <div class="file-loading">
+                                                        <input style="width: 20vw" id="{{ h.id }}_upload"
+                                                               type="file" multiple
+                                                               class="file"
+                                                               data-show-preview="true"/>
+                                                    </div>
+                                                    <div id="kartik-file-errors"></div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <script>
+                                        initFileInput('{{ h.id }}_upload', '{{ h.id }}', '{{ h.id }}_isSubmit', eval({{ h.file_type|safe }}));
+                                    </script>
+                                    {% if h.scored %}
+                                        <td style="vertical-align: middle">已评分</td>
+                                    {% elif h.late_submit %}
+                                        <td id="{{ h.id }}_upload_late" style="vertical-align: middle">
+                                            <button sype="button" class="btn btn-danger btn-sm"
+                                                    onclick="submit_late('{{ h.id }}_upload', '{{ h.id }}', '{{ h.id }}_isSubmit')"
+                                                    style="cursor:pointer">补交
+                                            </button>
+                                        </td>
+                                    {% else %}
+                                        <td style="vertical-align: middle">
+                                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                                                    data-target="#exampleModal_{{ h.id }}"
+                                            >开始
+                                            </button>
+                                        </td>
+                                    {% endif %}
+                                {% else %}
+                                    <td>提交关闭</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {#    <div style="padding-top:5vh;padding-left:5vw;padding-right:5vw">#}
+    {#        <h3 style="float:left;">慕课成绩</h3>#}
+    {#        <table class="table">#}
+    {#            <tr>#}
+    {#                <th>测验</th>#}
+    {#                <th>成绩</th>#}
+    {#            </tr>#}
+    {#            <tr>#}
+    {#                <td>第一章 概论 课后作业（总分17分）</td>#}
+    {#                <td>{{ moocScore.chapter_1 }}#}
+    {#            </tr>#}
+    {#            <tr>#}
+    {#                <td>第二章 线性表作业（总分13分）</td>#}
+    {#                <td>{{ moocScore.chapter_2 }}#}
+    {#            </tr>#}
+    {#            <tr>#}
+    {#                <td>第三章 栈与队列测验（总分14分）</td>#}
+    {#                <td>{{ moocScore.chapter_3 }}#}
+    {#            </tr>#}
+    {#            <tr>#}
+    {#                <td>第四章 字符串测验（总分27分）</td>#}
+    {#                <td>{{ moocScore.chapter_4 }}#}
+    {#            </tr>#}
+    {#        </table>#}
+    {#    </div>#}
+    <div class="row">
+        <div class="col-lg-4 offset-lg-8 col-sm-12">
+            <div class="alert alert-link alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <h6>Tips:</h6>
+                <p>✎ 浏览器弹出提示且页面显示提交时间和文件链接方可确认提交成功</p>
+                <p>✎ 文件不要压缩打包，直接上传所有需要提交的文件</p>
+                <p>✎ 上传组件不支持IE，请用Chrome或Firefox打开</p>
+                <p>✎ 补交关闭时间在下一次作业截止（进入补交）时间</p>
+            </div>
+        </div>
+    </div>
+    {#    <div style="float: bottom;max-width: 50%">#}
+    {#        <div class="alert alert-link alert-dismissible" role="alert" style="float:left;">#}
+    {#            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span#}
+    {#                    aria-hidden="true">&times;</span></button>#}
+    {#            <div style="width: 1%;display:table;">#}
+    {#                <div style="width: 100%;text-align: center">#}
+    {#                    <p style="font-weight:bold;">{{ xkcd.safe_title }}</p>#}
+    {#                </div>#}
+    {#                <div style="width:auto">#}
+    {#                    <img id="xkcd" style="margin: 0 auto" src="{{ xkcd.img }}">#}
+    {#                    <div style="width:auto;word-wrap: break-word;word-break: break-all;overflow: hidden;">#}
+    {#                        <p>{{ xkcd.alt }}</p></div>#}
+    {#                </div>#}
+    {#            </div>#}
+    {#        </div>#}
+    {#    </div>#}
+</div>
+<script>
+    setInterval(function () {
+        var arr = document.getElementsByClassName("kv-file-upload");
+        for (i = 0; i < arr.length; i++) {
+            if (arr[i] != null)
+                arr[i].parentNode.removeChild(arr[i]);
+        }
+    })
+</script>
+</body>
+</html>

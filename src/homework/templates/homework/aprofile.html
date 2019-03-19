@@ -1,0 +1,144 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>管理</title>
+    <link rel="icon" href="{% static "images/dsa.png" %}" sizes="32x32">
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link href="{% static "bootstrap-fileinput/css/fileinput.css" %}" rel="stylesheet">
+    <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.3.1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+            crossorigin="anonymous"></script>
+    <style>$enable-responsive-font-sizes:true;</style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-expand-sm navbar-light bg-light">
+    <a class="navbar-brand" href="/at-y/">
+        <img src="{% static "images/dsa.png" %}" width="30" height="30" class="d-inline-block align-center" alt="">
+         Home
+    </a>
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+                <a class="nav-link" href="/at-a/">所有学生</a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="/nothing/">后台管理</a>
+            </li>
+        </ul>
+    </div>
+    <div class="collapse navbar-collapse" >
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item active">
+                <button class="btn btn-outline-success"><a href="/at-l/">Log out</a></button>
+            </li>
+        </ul>
+    </div>
+</nav>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col"><h5>我要批改的</h5></div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <table class="table table-hover">
+                <tr>
+                    <th>作业</th>
+                    <th>截止日期</th>
+                    <th>提交进度</th>
+                    <th>提交数目</th>
+                    <th>待批改</th>
+                </tr>
+                {% for h in homeworklist %}
+                    <tr>
+                        <td>{{ h.name }}</td>
+                        <td>{{ h.cutoff }}</td>
+                        {% if h.can_submit %}
+                            {% if h.late %}
+                                <td>可补交</td>
+                            {% else %}
+                                <td>提交中</td>
+                            {% endif %}
+                        {% else %}
+                            <td>已关闭</td>
+                        {% endif %}
+                        <td><a href="/at-z/?all=false&to_score=false&homework_id={{ h.id }}">{{ h.mine }}份</a></td>
+                        <td><a href="/at-z/?all=false&to_score=true&homework_id={{ h.id }}">{{ h.to_score }}份</a></td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <h5>全部</h5>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <table class="table table-hover">
+                <tr>
+                    <th>作业</th>
+                    <th>截止日期</th>
+                    <th>提交进度</th>
+                    <th>提交数目</th>
+                    <th>待批改</th>
+                </tr>
+                {% for h in homeworklist %}
+                    <tr>
+                        <td>{{ h.name }}</td>
+                        <td>{{ h.cutoff }}</td>
+                        {% if h.can_submit %}
+                            {% if h.late %}
+                                <td>可补交</td>
+                            {% else %}
+                                <td>提交中</td>
+                            {% endif %}
+                        {% else %}
+                            <td>已关闭</td>
+                        {% endif %}
+                        <td><a href="/at-z/?all=true&to_score=false&homework_id={{ h.id }}">{{ h.all }}份</a></td>
+                        <td><a href="/at-z/?all=true&to_score=true&homework_id={{ h.id }}">{{ h.all_to_score }}份</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col"><h5>工作进度</h5></div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <table class="table table-hover">
+                <tr>
+                    <th>助教</th>
+                    {% for h in homeworks %}
+                        <th>{{ h.name }}</th>
+                    {% endfor %}
+                </tr>
+                {% for a in assistantlist %}
+                    <tr>
+                        <td>{{ a.name }}</td>
+                        {% for w in a.work %}
+                            <td>
+                                <a href="/at-z/?all=false&to_score=true&homework_id={{ w.homework_id }}&student_id={{ a.student_id }}">{{ w.toscore }}
+                                    /</a>
+                                <a href="/at-z/?all=false&to_score=false&homework_id={{ w.homework_id }}&student_id={{ a.student_id }}">{{ w.all }}</a>
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

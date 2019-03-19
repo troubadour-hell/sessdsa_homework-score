@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>验证邮件已发送</title>
+    <link rel="icon" href="{% static "images/dsa.png" %}" sizes="32x32">
+    <link href="{% static "bootstrap-3.3.7-dist/css/bootstrap.css" %}" rel="stylesheet">
+    <link href="{% static "bootstrap-3.3.7-dist/css/bootstrap-theme.css" %}" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <h2 class="text-center">{{ status }}成功！请进入学号对应邮箱查看验证邮件，点击邮件中链接完成验证。</h2>
+    <h2 class="text-center">若未找到，请检查垃圾邮件。</h2>
+    <h2 class="text-center"><a id="second"></a></h2>
+</div>
+<script src="{% static "bootstrap-3.3.7-dist/js/jquery-3.3.1.js" %}"></script>
+<script src="{% static "bootstrap-3.3.7-dist/js/bootstrap.js" %}"></script>
+<script src="{% static "bootstrap-3.3.7-dist/js/bootstrap.min.js" %}"></script>
+<script src="{% static "bootstrap-fileinput/js/fileinput.js" %}"></script>
+<script src="{% static "bootstrap-fileinput/js/locales/zh.js" %}"></script>
+<script type="text/javascript">
+    var count = 60;
+    var countDown = function () {
+        document.getElementById("second").innerText = count.toString() + "s后点击重发";
+        count -= 1;
+        var is_continue = true;
+        if (count == 0) {
+            document.getElementById("second").innerText = "点击重发";
+            document.getElementById("second").setAttribute("href", "{% url "resend_email" hashcode student.student_id %}");
+            is_continue = false;
+        }
+        if (is_continue){
+            setTimeout("countDown()", 1000);
+        }
+    }
+    countDown();
+</script>
+</body>
+</html>

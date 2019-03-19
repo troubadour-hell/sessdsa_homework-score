@@ -1,0 +1,65 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>OJ</title>
+    <link rel="icon" href="{% static "images/dsa.png" %}" sizes="32x32">
+    <link href="{% static "bootstrap-3.3.7-dist/css/bootstrap.css" %}" rel="stylesheet">
+    <link href="{% static "bootstrap-3.3.7-dist/css/bootstrap-theme.css" %}" rel="stylesheet">
+    <link href="{% static "bootstrap-fileinput/css/fileinput.css" %}" rel="stylesheet">
+</head>
+<body>
+<style>
+    h1 {
+        font-size: medium;
+        font-weight: bold;
+    }
+
+    .code-input {
+        width: 100%;
+        height: 70vh;
+        resize: none;
+    }
+</style>
+<div>
+    <ul class="nav nav-pills">
+        <li role="presentation"><a href="{% url "index" %}">Home</a></li>
+        <li role="presentation"><a href="{% url "oj" %}">Online Judge</a></li>
+        <li role="presentation" style="float: right;"><a href="{% url "logout" %}">退出</a></li>
+    </ul>
+    <div style="padding-top:1vh;">
+        <div class="panel">
+            <div class="panel-body">
+                <div style="height:100%;width:50%;float:left">
+                    {% autoescape off %}
+                        {{ doc }}
+                    {% endautoescape %}
+                </div>
+                <div style="height:100%;width:50%;float: right;">
+                    <div style="width:100%">输入代码：</div>
+                    <form class="form-code" method='post' action="{% url "question" %}">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            {{ codeform.code }}
+                        </div>
+                        <div class="form-group">
+                            {{ codeform.question_id }}
+                        </div>
+                        <button type="submit" class="btn btn-primary pull-right">提交</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="{% static "bootstrap-3.3.7-dist/js/jquery-3.3.1.js" %}"></script>
+<script src="{% static "bootstrap-3.3.7-dist/js/bootstrap.js" %}"></script>
+<script src="{% static "bootstrap-3.3.7-dist/js/bootstrap.min.js" %}"></script>
+<script>
+    var id = document.getElementById("question_id");
+    id.value = "{{ q.id }}";
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>运行结果</title>
+    <link rel="icon" href="{% static "images/dsa.png" %}" sizes="32x32">
+    <link href="{% static "bootstrap-3.3.7-dist/css/bootstrap.css" %}" rel="stylesheet">
+    <link href="{% static "bootstrap-3.3.7-dist/css/bootstrap-theme.css" %}" rel="stylesheet">
+    <link href="{% static "bootstrap-fileinput/css/fileinput.css" %}" rel="stylesheet">
+</head>
+<body>
+<div>
+    <ul class="nav nav-pills">
+        <li role="presentation"><a href="{% url "index" %}">Home</a></li>
+        <li role="presentation"><a href="{% url "oj" %}">Online Judge</a></li>
+        <li role="presentation" style="float: right;"><a href="{% url "logout" %}">退出</a></li>
+    </ul>
+    <div style="padding-top:1vh">
+        <div class="panel">
+            <div class="panel-heading">
+                <h3 style="bold;">{{ q.name }}</h3>
+                <hr style="filter: alpha(opacity=100,finishopacity=0,style=3)" width=100% color="#6f5499" size="3"/>
+            </div>
+            <div class="panel-body">
+                {% for message in result %}
+                    <h5 style="font-weight: bold">Case {{ message.id }}</h5>
+                    {% if "error" not in message %}
+                        <h6 style="text-indent:2em;color:blue">pass</h6>
+                    {% else %}
+                        <h6 style="text-indent:2em;color:orangered">{{ message.error }}</h6>
+                        {% if message.error == "Wrong Answer!" %}
+                            {% if "input" in message %}
+                                <h6 style="text-indent:2em">input:</h6>
+                                {% for key, value in message.input.items %}
+                                    <h6 style="text-indent:4em">{{ key }}:{{ value }}</h6>
+                                {% endfor %}
+                            {% endif %}
+                            {% if "std_out" in message %}
+                                <h6 style="text-indent:2em">result:</h6>
+                                <h6 style="text-indent:4em">{{ message.std_out }}</h6>
+                            {% endif %}
+                            {% if "user_out" in message %}
+                                <h6 style="text-indent:2em">your result:</h6>
+                                <h6 style="text-indent:4em">{{ message.user_out }}</h6>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                <hr style="filter: alpha(opacity=100,finishopacity=0,style=3)" width=100% color="#6f5499" size="3"/>
+                {% if evaluate == "Accepted!" %}
+                    <h3 style="color:blue;font-weight: bold">{{ evaluate }}</h3>
+                {% else %}
+                    <h3 style="color:orangered;font-weight: bold">{{ evaluate }}</h3>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<script src="{% static "bootstrap-3.3.7-dist/js/jquery-3.3.1.js" %}"></script>
+<script src="{% static "bootstrap-3.3.7-dist/js/bootstrap.js" %}"></script>
+<script src="{% static "bootstrap-3.3.7-dist/js/bootstrap.min.js" %}"></script>
+</body>
+</html>
