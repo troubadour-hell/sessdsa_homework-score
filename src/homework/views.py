@@ -385,7 +385,7 @@ def a_register(request):
             secretcode = register_form.cleaned_data["secretCode"]
             password1 = register_form.cleaned_data["password1"]
             password2 = register_form.cleaned_data["password2"]
-            if secretcode != "一个暗号":  # 验证暗号
+            if secretcode != settings.SECRET_WORD:  # 验证暗号
                 message = "有空猜这个孩子都能打酱油了"
                 return render(request, "homework/aregister.html", locals())
             if password1 != password2:  # 判断两次密码是否相同
