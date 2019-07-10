@@ -1,0 +1,396 @@
+<html>
+
+<head>
+    <title>SESSDSA19 H6测试工具</title>
+    <!-- bootstrap -->
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.bootcss.com/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.bootcss.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
+
+    <!-- codemirror -->
+
+    <!-- codemirror base -->
+    <link rel="stylesheet" href="https://cdn.bootcss.com/codemirror/5.44.0/codemirror.min.css" />
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/codemirror.min.js"></script>
+
+    <!-- codemirror python -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/mode/python/python.min.js"></script>
+
+    <!-- 代码折叠 -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/fold/indent-fold.js"></script>
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/fold/foldgutter.min.js"></script>
+    <link href="https://cdn.bootcss.com/codemirror/5.44.0/addon/fold/foldgutter.min.css" rel="stylesheet">
+
+    <!-- 括号 -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/edit/matchbrackets.min.js"></script>
+
+    <!-- sublime快捷键 -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/comment/comment.min.js"></script>
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/keymap/sublime.min.js"></script>
+
+    <style>
+        .CodeMirror {
+            height: 40em;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.5);
+            line-height: 1em;
+            font-size: 1em;
+            font-family: "Consolas", 'Courier New', Courier, monospace
+        }
+
+        .CodeMirror-scroll {
+            overflow-y: hidden;
+            overflow-x: auto;
+        }
+
+        textarea {
+            width: 100%;
+            height: 40em
+        }
+
+        .smooth {
+            transition: 0.3s all;
+            overflow: hidden
+        }
+
+        #py_output {
+            white-space: pre-wrap;
+            overflow: auto !important;
+        }
+    </style>
+
+</head>
+
+<body style='background: #eee'>
+    <div class='container' style='background: white'>
+        <br>
+        <div class='row'>
+            <div class="col-sm-2 dropdown">
+                <a href="#" class="btn btn-secondary form-control dropdown-toggle" data-toggle="dropdown">设置</a>
+                <ul class="dropdown-menu">
+                    <li>
+                        <button id='codemirror_linewrap' class='btn form-control'>自动换行: 开</button>
+                    </li>
+                </ul>
+            </div>
+            <div class='col-sm-3'>
+                <button id='run1' class='btn btn-primary form-control'>博物馆</button>
+            </div>
+            <div class='col-sm-3'>
+                <button id='run2' class='btn btn-primary form-control'>编辑距离</button>
+            </div>
+            <div class='col-sm-3'>
+                <button id='run3' class='btn btn-primary form-control'>全部测试</button>
+            </div>
+        </div>
+        <br>
+        <div class='row' id='fold_panels'>
+            <div class='col-sm-6 smooth'>
+                <h3>将H6粘贴至此</h3>
+                <textarea id="py_code"></textarea>
+            </div>
+            <div class='col-sm-6 smooth'>
+                <h3>测试结果输出</h3>
+                <pre id="py_output" class='CodeMirror'></pre>
+            </div>
+        </div>
+        <br>
+    </div>
+
+    <!-- 各种功能辅助 -->
+    <div id='escape_helper' style="display:none"></div><!--  -->
+    <input type="file" id='upload_helper' style="display:none">
+    <a id='save_helper' style="display:none"></a>
+
+    <!-- 前端 -->
+    <script>
+        // codemirror
+        function newTab(cm) {
+            if (cm.somethingSelected()) {
+                cm.indentSelection('add');
+            } else {
+                var tab_value = cm.getOption("indentWithTabs") ? "\t" : Array(cm.getOption("indentUnit") + 1).join(" ")
+                cm.replaceSelection(tab_value, "end", "+input")
+            }
+        }
+
+        var editor = CodeMirror.fromTextArea(document.getElementById("py_code"), {
+            mode: "python",
+            indentUnit: 4,
+            lineNumbers: true,
+            lineWrapping: true,
+            foldGutter: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            keyMap: 'sublime',
+            extraKeys: { Tab: newTab },
+        });
+
+        // setting buttons
+        {
+            document.getElementById('codemirror_linewrap').addEventListener('click', e => {
+                var self = e.path[0]
+                e.stopPropagation();
+                editor.setOption('lineWrapping', !editor.getOption('lineWrapping'))
+                self.innerHTML = '自动换行: '
+                if (editor.getOption('lineWrapping')) self.innerHTML += '开'
+                else self.innerHTML += '关'
+            })
+        }
+    </script>
+
+    <!-- brython -->
+    <script id='__main__' type='text/python'>
+from browser import document,console,run_script
+import sys,traceback,time
+target=document['py_output']
+escape_helper=document.createElement('div')
+def escape(s):
+    escape_helper.textContent=s
+    return escape_helper.innerHTML.replace('\n','<br>')
+def write_gen(pattern):
+    def new_write(s):
+        target.innerHTML+=pattern%escape(s)
+    return new_write
+sys.stderr.write=write_gen('<span class="text-danger">%s</span>')
+sys.nope=lambda *a,**kw:None
+sys.stdout.write=sys.nope
+sys.stdout_bak=write_gen('%s')
+    </script>
+    <script id='tester_ref' type='text/plain'>
+from collections import Counter
+from itertools import product
+from traceback import print_exc
+from random import randrange
+from string import ascii_uppercase as letters
+from sys import stderr
+
+def dp_ref1(tL, mW):
+    DP = [[0]*(1+mW) for i in range(1+len(tL))]
+    for i,w in product(range(len(tL)),range(1,mW+1)):
+        t=tL[i]
+        pool=[DP[i-1][w]]
+        if t['w']<=w:
+            pool.append(DP[i-1][w-t['w']]+t['v'])
+        DP[i][w]=max(pool)
+    mV,res=DP[-2][mW],[]
+    for i in range(len(tL)-1,-1,-1):
+        if mW>0 and DP[i][mW]!=DP[i-1][mW]:
+            mW-=tL[i]['w']
+            res.append(tL[i])
+    return mV, res[::-1]
+def dp_ref2(original, target, oplist):
+    op_ins, op_del, op_cpy = oplist['insert'], oplist['delete'], oplist['copy']
+    DP = [[(0, None, None)]*(1 + len(target)) for i in range(1 + len(original))]
+    DP[0][0] = (0, None, None)
+    for i in range(1, 1 + len(target)):
+        DP[0][i] = (op_ins * i, 'insert',(0,i-1))
+    for i in range(1, 1 + len(original)):
+        DP[i][0] = (op_del * i, 'delete',(i-1,0))
+    for l_from in range(1, 1 + len(original)):
+        for l_to in range(1, 1 + len(target)):
+            ops = [(DP[l_from - 1][l_to][0] + op_del, 'delete',(l_from - 1, l_to)),
+                   (DP[l_from][l_to - 1][0] + op_ins, 'insert',(l_from, l_to - 1))]
+            if original[l_from - 1] == target[l_to - 1]:
+                ops.append((DP[l_from - 1][l_to - 1][0] + op_cpy, 'copy',(l_from - 1, l_to - 1)))
+            DP[l_from][l_to] = min(ops, key=lambda x: x[0])
+    o,t,res=len(original), len(target),[]
+    score,op,_=DP[o][t]
+    while _:
+        res.append(f"{op} {original[o-1] if op == 'delete' else target[t-1]}")
+        o,t=_
+        _,op,_=DP[_[0]][_[1]]
+    return score, res[::-1]
+    </script>
+    <script id='tester_helper' type='text/plain'>
+class FrozenDict:
+    def __init__(self, dct=None, **kw):
+        self.dct = dct or kw
+
+    def keys(self):
+        return self.dct.keys()
+
+    def values(self):
+        return self.dct.values()
+
+    def items(self):
+        return self.dct.items()
+
+    def copy(self):
+        return FrozenDict(self.dct.copy())
+
+    def __getitem__(self, k):
+        return self.dct[k]
+
+    def __str__(self):
+        return str(self.dct)
+
+    __repr__ = __str__
+
+
+def pick(s):
+    return s[randrange(len(s))]
+
+
+p_targets = ['SESSDSA', 'AEIOU', 'OSU', 'DEBUG', letters]
+def gen_rand_string(size):
+    return ''.join(pick(pick(p_targets)) for i in range(size))
+
+
+repick_helper=lambda x:(x['w'],x['v'])
+def repick_bags(all_bags, max_w, score, bags):
+    w, v = 0, 0
+    all_bags = Counter(map(repick_helper,bags))
+    picked_bags = Counter()
+    for bag in bags:
+        bag = repick_helper(bag)
+        w += bag[0]
+        v += bag[1]
+        picked_bags[bag] += 1
+    assert w <= max_w, f'背包超重({w} > {max_w})'
+    assert v == score, f'得分统计错误({score}; 应为{v})'
+    for k, v in picked_bags.items():
+        assert v <= all_bags[k], f'背包<w,v={k}>过多({v} > {all_bags[k]})'
+
+
+def rebuild_edit(orig, target, op_lst, score, ops):
+    try:
+        p, res, op_raw = 0, [], None
+        score_rebuild = 0
+        for ind, op_raw in enumerate(ops):
+            op, w = op_raw.split(' ', 1)
+            if op == 'insert':
+                res.append(w)
+            elif op == 'delete':
+                assert p < len(orig) and orig[p] == w, '非法删除'
+                p += 1
+            elif op == 'copy':
+                assert p < len(orig) and orig[p] == w, '非法拷贝'
+                res.append(orig[p])
+                p += 1
+            else:
+                raise AssertionError(f'非法操作: {op}')
+            score_rebuild += op_lst[op]
+        res = ''.join(res)
+        op_raw = None
+        assert p == len(orig), f'原单词未读入完全(剩余: {repr(orig[p:])})'
+        assert res == target, f'复原失败({repr(res)} != {repr(target)})'
+        assert score_rebuild == score, f'得分统计错误({score}; 应为{score_rebuild})'
+    except:
+        if op_raw != None:
+            print(f"出错的操作: #{ind} {repr(op_raw)}", file=stderr)
+        raise
+    </script>
+    <script id='tester1' type='text/plain'>
+print('博物馆大盗')
+try:
+    cases=[
+        (({'w':1,'v':24},{'w':18,'v':8},{'w':1,'v':24}),4),
+        (({'w':17,'v':28},{'w':17,'v':0},{'w':13,'v':9},{'w':1,'v':11},{'w':7,'v':15},{'w':16,'v':12},{'w':1,'v':11}),2),
+        (({'w':12,'v':2},{'w':7,'v':12},{'w':12,'v':19},{'w':1,'v':4},{'w':15,'v':2},{'w':19,'v':10},{'w':1,'v':4}),2),
+        (({'w':1,'v':15},{'w':1,'v':15}),9),
+        (({'w':1,'v':18},{'w':1,'v':18},{'w':12,'v':21},{'w':16,'v':1},{'w':13,'v':12},{'w':3,'v':11},{'w':3,'v':28}),3),
+        (({'w':1,'v':6},{'w':1,'v':6}),11),
+        (({'w':4,'v':1},{'w':1,'v':10},{'w':1,'v':10},{'w':3,'v':0}),7),
+        (({'w':12,'v':7},{'w':17,'v':18},{'w':5,'v':14},{'w':18,'v':9},{'w':16,'v':7},{'w':2,'v':28},{'w':2,'v':28},{'w':8,'v':17}),4),
+        (({'w':1,'v':1},{'w':13,'v':18},{'w':12,'v':23},{'w':2,'v':29},{'w':14,'v':16},{'w':7,'v':2},{'w':1,'v':1},{'w':3,'v':14}),4),
+        (({'w':3,'v':17},{'w':3,'v':17}),17),
+    ]
+    for test in range(20):
+        r2 = None
+        if test < len(cases):
+            t_lst, t_w = cases[test]
+        else:
+            t_lst, t_w = [], randrange(1, 50)
+            for i in range(randrange(1, 10)):
+                t_lst.append(dict(w=randrange(1, 10), v=randrange(10)))
+        t_lst = list(map(FrozenDict, t_lst))
+        r1 = dp_ref1(t_lst, t_w)
+        r2 = dpMuseumThief(t_lst[:], t_w)
+        repick_bags(t_lst, t_w, *r2)
+        assert r1[0] == r2[0], f'''参考答案: {r1}'''
+    print('>>> PASS')
+except Exception as e:
+    print(
+        f'''调用: dpMuseumThief({str(t_lst).replace(' ','')},{t_w})''',
+        file=stderr)
+    print(f'输出: {r2}', file=stderr)
+    print(f'{type(e).__name__}: {e}', file=stderr)
+    </script>
+    <script id='tester2' type='text/plain'>
+print('编辑距离')
+try:
+    _values = lambda c, d, i: FrozenDict(copy=c, delete=d, insert=i)
+    cases = [
+        ('', '', _values(1, 1, 1)),
+        ('SESSDSA', '', _values(1, 5, 5)),
+        ('', 'SESSDSA', _values(1, 5, 5)),
+        ('SESSDSA', 'SESSDSA', _values(1, 5, 5)),
+        ('SESSDSA', 'SESSDSA', _values(1000, 5, 5)),
+        ('1lI|1lI', '|Il1|iL1|', _values(5, 10, 10)),
+    ]
+    for test in range(15):
+        r2 = None
+        if test < len(cases):
+            w1, w2, values = cases[test]
+        else:
+            values = _values(
+                randrange(1, 30), randrange(1, 30), randrange(1, 30))
+            w1 = gen_rand_string(randrange(10))
+            w2 = gen_rand_string(randrange(10))
+        r1 = dp_ref2(w1, w2, values)
+        r2 = dpWordEdit(w1, w2, values)
+        rebuild_edit(w1, w2, values, *r2)
+        assert r1[0] == r2[0], f'''参考答案: {r1}'''
+    print('>>> PASS')
+except Exception as e:
+    print(f'''调用: dpWordEdit({repr(w1)},{repr(w2)},{values})''', file=stderr)
+    print(f'输出: {r2}', file=stderr)
+    print(f'{type(e).__name__}: {e}', file=stderr)
+    </script>
+    <script id='brython' src="https://cdn.bootcss.com/brython/3.7.1/brython.min.js"></script>
+    <script>
+        var code_pool = document.getElementById("__main__")
+        var target = document.getElementById("py_output")
+        var lib = document.createElement("script")
+        lib.type = "text/javascript";
+        lib.src = "https://cdn.bootcss.com/brython/3.7.1/brython_stdlib.js";
+        document.body.appendChild(lib);
+        lib.addEventListener('load', () => {
+            // run header
+            brython()
+            code_pool.innerHTML = ''
+
+            // run button
+            function click_func(if_1, if_2) {
+                function tmp() {
+                    target.innerHTML = ''
+                    code_pool.innerHTML = editor.getValue() +
+                        '\nimport sys\nsys.stdout.write=sys.stdout_bak\n' +
+                        document.getElementById('tester_ref').innerHTML +
+                        document.getElementById('tester_helper').innerHTML
+                    if (if_1) code_pool.innerHTML += document.getElementById('tester1').innerHTML
+                    if (if_2) code_pool.innerHTML += document.getElementById('tester2').innerHTML
+                    code_pool.innerHTML += '\nsys.stdout.write=sys.nope\n'
+                    brython()
+                }
+                return tmp
+            }
+            document.getElementById('run1').addEventListener('click', click_func(1, 0))
+            document.getElementById('run2').addEventListener('click', click_func(0, 1))
+            document.getElementById('run3').addEventListener('click', click_func(1, 1))
+        })
+    </script>
+</body>
+
+</html>

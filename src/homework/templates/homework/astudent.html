@@ -129,21 +129,24 @@
                         </td>
                         <td style="vertical-align: middle">
                             <button type="button" class="btn btn-link btn-sm">
-                                <a onclick="for(var i=0;i< {{ h.downloads }}.length;i++){window.open({{ h.downloads }}[i], '_blank').location;}">{{ h.downloads|length }}
-                                    个文件</a>
+                                <a onclick="{% for url in h.downloads %}window.open('{{ url }}', '_blank');{% endfor %}">{{ h.downloads|length }}个文件</a>
                             </button>
                         </td>
                         <td style="vertical-align: middle">
                             <button type="button" class="btn btn-link btn-sm">
-                                <a onclick="for(var i=0;i< {{ h.previews }}.length;i++){window.open({{ h.previews }}[i], '_blank').location;}">{{ h.previews|length }}
-                                    可预览</a>
+                                <a onclick="{% for url in h.previews %}window.open('{{ url }}', '_blank');{% endfor %}">{{ h.previews|length }}可预览</a>
                             </button>
                         </td>
                         <td style="vertical-align: middle">
-                            <input id="{{ h.submit_id }}_score" type="number" class="rating" min=0 max=5 step=1 data-size="xs">
+                            <input id="{{ h.submit_id }}_score" type="number" class="rating" min=0 max=5 step=1
+                                   data-size="xs">
                             <script type="application/javascript">
-                                $("#{{ h.submit_id }}_score").rating({showCaption:false,animate:false,clearValue:0});
-                                $("#{{ h.submit_id }}_score").rating('update',{{ h.score }});
+                                $("#{{ h.submit_id }}_score").rating({
+                                    showCaption: false,
+                                    animate: false,
+                                    clearValue: 0
+                                });
+                                $("#{{ h.submit_id }}_score").rating('update', {{ h.score }});
                             </script>
                         </td>
                         <td style="vertical-align: middle">
@@ -162,7 +165,7 @@
                                       class="center"></textarea>
                         </td>
                         <td style="width: 5vw;vertical-align: middle">
-                            <button type="button"  class="btn tn-outline-primary float-right"
+                            <button type="button" class="btn tn-outline-primary float-right"
                                     onclick="submit_score('{{ h.submit_id }}','{{ h.time_stamp }}')">提交
                             </button>
                         </td>

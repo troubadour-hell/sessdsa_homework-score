@@ -3,7 +3,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>{{ homework_name }}_{{ student_name }}_{{ file_name }}</title>
+    <title>{{ title }}</title>
     <link rel="icon" href="{% static "images/dsa.png" %}" sizes="32x32">
     <link href="{% static "prism/prism.css" %}" rel="stylesheet">
     <script src="{% static "prism/prism.js" %}"></script>
@@ -19,11 +19,10 @@
             display: -webkit-flex;
             display: flex;
             font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-            background: black;
         }
 
         .flexbox-container > div {
-            background: white;
+            background: #f5f2f0;
             font-size:large;
             width:49.5%;
             height:100vh;
@@ -34,7 +33,7 @@
         }
 
         .flexbox-container > div:first-child {
-            background: white;
+            background: #fff;
             font-size: medium;
             width:50%;
             height:100vh;
@@ -46,56 +45,44 @@
 
     </style>
 </head>
-<body id="body" style="overflow: hidden">
+<body id="body">
 <div class="flexbox-container">
-    {% if run %}
-        <div>
+    <div>
         <pre class="line-numbers" data-start="0" style="margin-top:0;"><code class="language-python"
           style="white-space: pre-wrap;">{{ code }}</code></pre>
-        </div>
-        <div>
-        <pre class="line-numbers" data-start="0" style="margin-top:0;width:100%;overflow: visible"><code class="language-python" id="result"></code></pre>
-        </div>
-    {% else %}
-        <div>
-        <pre class="line-numbers" data-start="0" style="margin-top: 0"><code class="language-python"
-          style="white-space: pre-wrap">{{ code }}</code></pre>
-        </div>
-    {% endif %}
+    </div>
+    <div>
+        <pre class="line-numbers" style="margin-top:0;overflow: visible"><code class="language-python" id="result"></code></pre>
+    </div>
 </div>
-{% if run %}
-    <script id="pycode" type="text/python">{{ code|safe }}</script>
-    <script type="text/javascript">
-        document.getElementById("body").onload = function () {
-            var pycode = document.getElementById("pycode");
-            var code = pycode.innerText;
-            pycode.innerHTML = `
+<script id="pycode" type="text/python">{{ code|safe }}</script>
+<script type="text/javascript">
+    //document.getElementById("result").write = function (s) {
+    //    this.innerHTML += s;
+    //}
+    document.getElementById("body").onload = function () {
+        var pycode = document.getElementById("pycode");
+        var code = pycode.innerText; //.replace(/\u{a0}/ug, " ");
+        pycode.innerHTML = `
 from browser import document
 import sys
-target = document['result']
+target=document['result']
 escape_helper=document.createElement('div')
-def fake_print(*args, **kwargs):
-    pass
-print_save = print
-print = fake_print
 def escape(s):
     escape_helper.textContent=s
     return escape_helper.innerHTML
 def write_gen(pattern):
     def new_write(s):
-        target.innerHTML+=pattern%s
+        target.innerHTML+=pattern%escape(s)
     return new_write
-sys.stdout.write=write_gen('<span>%s</span>')
-sys.stderr.write=write_gen('<span style="color:blue;">%s</span>')
+sys.stdout.write=write_gen('%s')
+sys.stderr.write=write_gen('<span style="color:blue">%s</span>')
 
-` + code + `
+` + code
+;
+        brython({debug: 1})
+    }
 
-print = print_save
-{{ just_code|safe }}
-`;
-            brython({debug: 1})
-        }
-    </script>
-{% endif %}
+</script>
 </body>
 </html>

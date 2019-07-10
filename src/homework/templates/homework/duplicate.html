@@ -1,0 +1,74 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>管理</title>
+    <link rel="icon" href="{% static "images/dsa.png" %}" sizes="32x32">
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link href="{% static "bootstrap-fileinput/css/fileinput.css" %}" rel="stylesheet">
+    <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.3.1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+            crossorigin="anonymous"></script>
+    <style>$enable-responsive-font-sizes:true;</style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-expand-sm navbar-light bg-light">
+    <a class="navbar-brand" href="{% url "a_index" %}">
+        <img src="{% static "images/dsa.png" %}" width="30" height="30" class="d-inline-block align-center" alt="">
+        Home
+    </a>
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+                <a class="nav-link" href="{% url "a_students" %}">所有学生</a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="{% url "duplicate_check" "!" %}">查重</a>
+            </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="/nothing/">后台管理</a>
+            </li>
+        </ul>
+    </div>
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item active">
+                <button class="btn btn-outline-success"><a href="{% url "a_logout" %}">Log out</a></button>
+            </li>
+        </ul>
+    </div>
+</nav>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col"><h5>查重</h5></div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <table class="table table-hover">
+                <tr>
+                    <th>作业</th>
+                    <th>内容</th>
+                    <th></th>
+                </tr>
+                {% for h in homeworks %}
+                    <tr>
+                        <td>{{ h.name }}</td>
+                        <td>{{ h.description }}</td>
+                        <td><a href="{% url "duplicate_check" h.id %}">查重</a></td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+    <div class="row" style="height: 30px"></div>
+</div>
+</body>
+</html>

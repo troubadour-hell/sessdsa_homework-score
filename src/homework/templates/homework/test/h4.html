@@ -1,0 +1,533 @@
+<html>
+
+<head>
+    <title>SESSDSA19 H4测试工具</title>
+    <!-- bootstrap -->
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.bootcss.com/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.bootcss.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
+
+    <!-- codemirror -->
+
+    <!-- codemirror base -->
+    <link rel="stylesheet" href="https://cdn.bootcss.com/codemirror/5.44.0/codemirror.min.css" />
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/codemirror.min.js"></script>
+
+    <!-- codemirror python -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/mode/python/python.min.js"></script>
+
+    <!-- 代码折叠 -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/fold/indent-fold.js"></script>
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/fold/foldgutter.min.js"></script>
+    <link href="https://cdn.bootcss.com/codemirror/5.44.0/addon/fold/foldgutter.min.css" rel="stylesheet">
+
+    <!-- 括号 -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/edit/matchbrackets.min.js"></script>
+
+    <!-- sublime快捷键 -->
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/addon/comment/comment.min.js"></script>
+    <script src="https://cdn.bootcss.com/codemirror/5.44.0/keymap/sublime.min.js"></script>
+
+    <style>
+        .CodeMirror {
+            height: 40em;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.5);
+            line-height: 1em;
+            font-size: 1em;
+            font-family: "Consolas", 'Courier New', Courier, monospace
+        }
+
+        .CodeMirror-scroll {
+            overflow-y: hidden;
+            overflow-x: auto;
+        }
+
+        textarea {
+            width: 100%;
+            height: 40em
+        }
+
+        .smooth {
+            transition: 0.3s all;
+            overflow: hidden
+        }
+
+        #py_output {
+            white-space: pre-wrap;
+            overflow: auto !important;
+        }
+    </style>
+
+</head>
+
+<body style='background: #eee'>
+    <div class='container' style='background: white'>
+        <br>
+        <div class='row'>
+            <div class="col-sm-2 dropdown">
+                <a href="#" class="btn btn-secondary form-control dropdown-toggle" data-toggle="dropdown">设置</a>
+                <ul class="dropdown-menu">
+                    <li>
+                        <button id='codemirror_linewrap' class='btn form-control'>自动换行: 开</button>
+                    </li>
+                </ul>
+            </div>
+            <div class='col-sm-3'>
+                <button id='run1' class='btn btn-primary form-control' title='简单的随机化样例'>简易测试</button>
+            </div>
+            <div class='col-sm-3'>
+                <button id='run2' class='btn btn-primary form-control' title='与标准数据结构对标的随机测试, 包含错误结果复现功能'>完整测试</button>
+            </div>
+            <div class='col-sm-3'>
+                <button id='run3' class='btn btn-primary form-control' title='对选做内容的测试'>额外测试</button>
+            </div>
+        </div>
+        <br>
+        <div class='row' id='fold_panels'>
+            <div class='col-sm-6 smooth'>
+                <h3>将H4粘贴至此</h3>
+                <textarea id="py_code"></textarea>
+            </div>
+            <div class='col-sm-6 smooth'>
+                <h3>测试结果输出</h3>
+                <pre id="py_output" class='CodeMirror'></pre>
+            </div>
+        </div>
+        <br>
+    </div>
+
+    <!-- 各种功能辅助 -->
+    <div id='escape_helper' style="display:none"></div><!--  -->
+    <input type="file" id='upload_helper' style="display:none">
+    <a id='save_helper' style="display:none"></a>
+
+    <!-- 前端 -->
+    <script>
+        // codemirror
+        function newTab(cm) {
+            if (cm.somethingSelected()) {
+                cm.indentSelection('add');
+            } else {
+                var tab_value = cm.getOption("indentWithTabs") ? "\t" : Array(cm.getOption("indentUnit") + 1).join(" ")
+                cm.replaceSelection(tab_value, "end", "+input")
+            }
+        }
+
+        var editor = CodeMirror.fromTextArea(document.getElementById("py_code"), {
+            mode: "python",
+            indentUnit: 4,
+            lineNumbers: true,
+            lineWrapping: true,
+            foldGutter: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            keyMap: 'sublime',
+            extraKeys: { Tab: newTab },
+        });
+
+        // setting buttons
+        {
+            document.getElementById('codemirror_linewrap').addEventListener('click', e => {
+                var self = e.path[0]
+                e.stopPropagation();
+                editor.setOption('lineWrapping', !editor.getOption('lineWrapping'))
+                self.innerHTML = '自动换行: '
+                if (editor.getOption('lineWrapping')) self.innerHTML += '开'
+                else self.innerHTML += '关'
+            })
+        }
+    </script>
+
+    <!-- brython -->
+    <script id='__main__' type='text/python'>
+from browser import document,console,run_script
+import sys,traceback,time
+target=document['py_output']
+escape_helper=document.createElement('div')
+def escape(s):
+    escape_helper.textContent=s
+    return escape_helper.innerHTML.replace('\n','<br>')
+def write_gen(pattern):
+    def new_write(s):
+        target.innerHTML+=pattern%escape(s)
+    return new_write
+sys.stdout.write=write_gen('%s')
+sys.stderr.write=write_gen('<span class="text-danger">%s</span>')
+    </script>
+    <script id='tester_lib' type='text/plain'>
+# SESSDSA19 H4 随机测试样例
+LINE_WIDTH = 50
+N_TESTS = 10
+N_OPS = 20
+
+from collections import deque
+from random import randrange, choice
+from sys import stderr
+
+if 'ref ds':
+
+    class ref_node:
+        def __init__(self, lst, ind):
+            self.lst = lst
+            self.ind = ind
+
+        def getData(self):
+            return self.lst[self.ind]
+
+        def getNext(self):
+            return ref_node(self.lst, self.ind + 1)
+
+        def getPrev(self):
+            return ref_node(self.lst, self.ind - 1)
+
+        def setData(self, newdata):
+            self.lst[self.ind] = newdata
+
+        def __eq__(self, other):
+            try:
+                return self.getData() == other.getData()
+            except:
+                return False
+
+    ref_node.__str__ = lambda self: '<%r>' % self.getData()
+    Node.__str__ = Node.__repr__ = ref_node.__repr__ = ref_node.__str__
+
+    class ref_list(list):
+        isEmpty = lambda self: not bool(self)
+        add = lambda self, item: self.insert(0, item)
+        search = lambda self, item: item in self
+        size = list.__len__
+
+        def getTail(self):
+            assert self.size() > 0
+            return ref_node(self, len(self) - 1)
+
+        def __getitem__(self, arg):
+            res = super().__getitem__(arg)
+            if isinstance(arg, slice):
+                res = ref_list(res)
+            return res
+
+        def __eq__(self, other):
+            try:
+                if len(self) != len(other):
+                    return False
+                tmp = [(self[i], other[i]) for i in range(len(self))]
+                return all(i == j for i, j in tmp)
+            except:
+                return False
+
+    class ref_olist(list):
+        isEmpty = lambda self: not bool(self)
+        search = lambda self, item: item in self
+        size = list.__len__
+
+        def add(self, item):
+            self.append(item)
+            self.sort()
+
+        def __getitem__(self, arg):
+            res = super().__getitem__(arg)
+            if isinstance(arg, slice):
+                res = ref_list(res)
+            return res
+
+        def __eq__(self, other):
+            try:
+                if len(self) != len(other):
+                    return False
+                tmp = [(self[i], other[i]) for i in range(len(self))]
+                return all(i == j for i, j in tmp)
+            except:
+                return False
+
+    class ref_deque(deque):
+        push = deque.append
+        peek = lambda self: self[-1]
+        enqueue = deque.append
+        dequeue = deque.popleft
+        isEmpty = lambda self: not bool(self)
+        size = deque.__len__
+
+
+def test(i, t_lst, r_lst, op_write, op_read):
+    print('TEST #%d' % i, end='')
+    _SIZE = 0
+    passed = True
+    ops = []
+    params = []
+
+    def get(param):
+        if param == 'num':
+            return randrange(N_OPS)
+        elif param == 'numstr':
+            if randrange(2):
+                return randrange(N_OPS)
+            return str(randrange(10))
+        elif param == 'len':
+            return randrange(_SIZE)
+        elif param == '-len':
+            return randrange(_SIZE) - _SIZE
+        elif param == 'slice':
+            a = randrange(_SIZE - 1)
+            b = randrange(a, _SIZE + 1)
+            return slice(a, b, randrange(1, 10))
+
+    def one_check(op):
+        ref_exec = True
+        op = op.split()
+
+        try:
+            params.clear()
+            params.extend(map(get, op[1:]))
+            r_ref = getattr(r_lst, op[0])(*params)
+        except:
+            ref_exec = False
+
+        if ref_exec:
+            r_test = getattr(t_lst, op[0])(*params)
+            if r_ref != None:
+                assert r_ref == r_test, '输出: %r;\n应该输出: %r' % (r_test, r_ref)
+
+            ops.append((op[0], *params))
+
+    def output(op):
+        func = op[0]
+        params = ','.join(map(repr, op[1:]))
+        return '%s(%s)' % (func, params)
+
+    try:
+        for i in range(N_OPS):
+            # write one
+            curr_op = choice(op_write)
+            one_check(curr_op)
+
+            # update size
+            _SIZE = len(r_lst)
+
+            # read one
+            curr_op = choice(op_read)
+            one_check(curr_op)
+
+        print(' PASS')
+    except Exception as e:
+        print('\n出错的操作:', output((curr_op.split()[0], *params)))
+        print('历史操作:', ','.join(map(output, ops)))
+        print('报错: (%s: %s)' % (type(e).__name__, str(e)), file=stderr)
+        try:
+            print('LAST LISTS'.center(LINE_WIDTH, '.'))
+            print('参考列表:', r_lst)
+            print('测试列表:', t_lst)
+        except Exception as e:
+            print('打印报错 (%s: %s)' % (type(e).__name__, str(e)), file=stderr)
+        print('END'.center(LINE_WIDTH, '.'))
+
+
+def test_code(title, code):
+    print(title, end=':\n')
+    # print('Code'.center(LINE_WIDTH, '.'))
+    # print(code)
+    try:
+        exec(code, globals())
+    except Exception as e:
+        print('报错 (%s: %s)' % (type(e).__name__, str(e)), file=stderr)
+
+
+def prev_iter(lst):
+    node = lst.getTail()
+    res = []
+    for i in range(len(lst)):
+        res.append(node.getData())
+        node = node.getPrev()
+    return res
+
+
+def safe_iter(lst):
+    lst_iter = iter(lst)
+    for i in range(len(lst)):
+        yield next(lst_iter)
+    try:
+        not_end = next(lst_iter)
+        yield 'NOT END'
+    except:
+        pass
+    </script>
+    <script id='t_simple' type='text/plain'>
+# SESSDSA19 H4 简易随机测试样例
+import random
+for test_cls in UnorderedList,DoublyLinkedList:
+    print(test_cls.__name__.center(50,'='))
+    lst=test_cls()
+    test_pool=[random.randrange(10) for i in range(50)]
+    print('add'.center(50,'-'))
+    for i in test_pool:
+        lst.add(i)
+    random.shuffle(test_pool)
+    print('remove'.center(50,'-'))
+    for i in test_pool:
+        lst.remove(i)
+    random.shuffle(test_pool)
+    print('append+insert'.center(50,'-'))
+    for i in test_pool:
+        if random.randrange(2):
+            lst.append(i)
+        else:
+            lst.insert(random.randrange(len(lst)+1),i)
+    print('pop'.center(50,'-'))
+    while not lst.isEmpty():
+        lst.pop(random.randrange(len(lst)))
+print('Clear'.center(50,'='))
+    </script>
+    <script id='t_full' type='text/plain'>
+# isEmpty, add, search, size, remove, append index pop insert, __len__, __getitem__
+print("1 UnorderedList".center(LINE_WIDTH, '='))
+for i in range(N_TESTS):
+    test(i, UnorderedList(), ref_list(), (
+        'append numstr',
+        'add numstr',
+        'insert len numstr',
+        'pop len',
+        'pop',
+        'remove numstr',
+    ), (
+        'isEmpty',
+        'search numstr',
+        'size',
+        '__len__',
+        'index numstr',
+        '__getitem__ len',
+        '__getitem__ slice',
+    ))
+
+# add, remove, search, isEmpty, size, index, pop
+print('\n' * 5 + "2 OrderedList".center(LINE_WIDTH, '='))
+for i in range(N_TESTS):
+    test(i, OrderedList(), ref_olist(), (
+        'add num',
+        'add num',
+        'add num',
+        'remove num',
+        'pop len',
+        'pop',
+    ), (
+        'isEmpty',
+        'search num',
+        'size',
+        'index num',
+        '__getitem__ len',
+        '__getitem__ slice',
+    ))
+
+# push pop peek
+print('\n' * 5 + "3 Stack".center(LINE_WIDTH, '='))
+for i in range(N_TESTS):
+    test(i, Stack(), ref_deque(), (
+        'push num',
+        'pop',
+    ), (
+        'isEmpty',
+        'peek',
+        'size',
+    ))
+
+# enqueue dequeue
+print('\n', "3 Queue".center(LINE_WIDTH, '='))
+for i in range(N_TESTS):
+    test(i, Queue(), ref_deque(), (
+        'enqueue num',
+        'dequeue',
+    ), (
+        'isEmpty',
+        'size',
+    ))
+
+# getTail
+print('\n' * 5 + "4 DoublyLinkedList".center(LINE_WIDTH, '='))
+for i in range(N_TESTS):
+    l1 = DoublyLinkedList()
+    l2 = ref_list()
+    test(i, l1, l2, (
+        'append numstr',
+        'add numstr',
+        'insert len numstr',
+        'pop len',
+        'pop',
+        'remove numstr',
+    ), (
+        'isEmpty',
+        'search numstr',
+        'size',
+        '__len__',
+        'index numstr',
+        '__getitem__ len',
+        '__getitem__ slice',
+        'getTail',
+    ))
+    test_code('prev link test', r'''r1=prev_iter(l1)
+r2=l2[::-1]
+if r1==r2:
+    print('PASS')
+else:
+    print('双链表倒序结果: ',r1,file=stderr)
+    print('参考结果: ',r2,file=stderr)''')
+    </script>
+    <script id='t_extra' type='text/plain'>
+# Additional
+for lst_type in 'UnorderedList', 'DoublyLinkedList':
+    print('\n' * 5 + ("Ex %s" % lst_type).center(LINE_WIDTH, '='))
+    test_code(
+        '__eq__+__iter__ test',
+        '''lst={typ}(range(5))
+print('lst:',lst)
+print('lst=={typ}(range(5)) -> T:',lst=={typ}(range(5)))
+print('lst!={typ}(range(6)) -> T:',lst!={typ}(range(6)))
+print('lst!=list(range(5)) -> T:',lst!=list(range(5)))
+print('lst!=None -> T:',lst!=None)
+print('lst=={typ}(lst) -> T:',lst=={typ}(safe_iter(lst)))
+mtest=[(x,y) for x in safe_iter(lst) for y in safe_iter(lst)]
+print('多iter测试 -> T:',mtest==[(x,y) for x in range(5) for y in range(5)])'''
+        .format(typ=lst_type))
+    </script>
+    <script id='brython' src="https://cdn.bootcss.com/brython/3.7.1/brython.min.js"></script>
+    <script>
+        var code_pool = document.getElementById("__main__")
+        var target=document.getElementById("py_output")
+        var lib = document.createElement("script")
+        lib.type = "text/javascript";
+        lib.src = "https://cdn.bootcss.com/brython/3.7.1/brython_stdlib.js";
+        document.body.appendChild(lib);
+        lib.addEventListener('load', () => {
+            // run header
+            brython()
+            code_pool.innerHTML = ''
+
+            // run button
+            function click_script(name){
+                function tmp(){
+                    target.innerHTML=''
+                    code_pool.innerHTML = editor.getValue()+
+                        document.getElementById('tester_lib').innerHTML+
+                        document.getElementById(name).innerHTML
+                    brython()
+                }
+                return tmp
+            }
+            document.getElementById('run1').addEventListener('click', click_script('t_simple'))
+            document.getElementById('run2').addEventListener('click', click_script('t_full'))
+            document.getElementById('run3').addEventListener('click', click_script('t_extra'))
+        })
+    </script>
+</body>
+
+</html>

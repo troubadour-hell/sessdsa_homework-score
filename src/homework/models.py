@@ -62,6 +62,7 @@ class Homework(models.Model):
     iter = models.PositiveSmallIntegerField(null=False, blank=False, default=0, verbose_name="作业分配迭代器")  # 用于迭代分配助教
     file_type = models.CharField(max_length=128, null=False, blank=False, default="['py']",
                                  verbose_name="可提交文件类型")  # 可提交文件类型
+    run = models.BooleanField(null=False, blank=False, default=True, verbose_name="在线运行")  # 在线运行
     just_code = models.TextField(null=False, blank=True, default="", verbose_name="测试代码")  # 测试代码
 
     class Meta:
@@ -103,12 +104,12 @@ class Score(models.Model):
 # 作业提交
 class Submit(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, default="", verbose_name="学生")  # 关联学生，级联删除
-    homework = models.ForeignKey(Homework, on_delete=models.CASCADE, default="", verbose_name="作业")  # 关联作业，级联删除
+    homework = models.ForeignKey(Homework, on_delete=models.CASCADE, default="", related_name='submits', verbose_name="作业")  # 关联作业，级联删除
     assistant = models.ForeignKey(Assistant, on_delete=models.CASCADE, default="", verbose_name="批改人")  # 分配助教，级联删除
     scored = models.BooleanField(default=False, verbose_name="已评分")  # 是否已评分
     late = models.BooleanField(default=False, verbose_name="补交")  # 是否为补交
     time = models.DateTimeField(null=True, verbose_name="提交时间")  # 提交时间
-    times = models.PositiveSmallIntegerField(null=False, blank=False, default=0, verbose_name="提交次数") # 提交次数
+    times = models.PositiveSmallIntegerField(null=False, blank=False, default=0, verbose_name="提交次数")  # 提交次数
     block = models.BooleanField(null=False, blank=False, default=False, verbose_name="锁定")  # 发现抄袭锁定提交不允许覆盖
 
     # path = models.CharField(null=True, verbose_name="文件路径")  # 文件路径
@@ -128,17 +129,29 @@ class File(models.Model):
         verbose_name_plural = "提交文件"
 
 
-# 慕课成绩
+# 慕课成绩（额外自行导入）
 class Mooc(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, default="", verbose_name="学生")  # 关联学生，级联删除
-    chapter_1 = models.FloatField(null=False, blank=False, default=0, verbose_name="分数")  # 分数
-    chapter_2 = models.FloatField(null=False, blank=False, default=0, verbose_name="分数")  # 分数
-    chapter_3 = models.FloatField(null=False, blank=False, default=0, verbose_name="分数")  # 分数
-    chapter_4 = models.FloatField(null=False, blank=False, default=0, verbose_name="分数")  # 分数
-
+    test = models.FloatField(null=False, blank=False, default=0, verbose_name="测试")  # 分数
+    homework = models.FloatField(null=False, blank=False, default=0, verbose_name="作业")  # 分数
+    exam = models.FloatField(null=False, blank=False, default=0, verbose_name="考试")  # 分数
+    discuss = models.FloatField(null=False, blank=False, default=0, verbose_name="讨论")  # 分数
+    final = models.FloatField(null=False, blank=False, default=0, verbose_name="分数")  # 分数
     class Meta:
         verbose_name = "慕课成绩"
         verbose_name_plural = "慕课成绩"
+
+
+# 查重
+class DuplicateCheck(models.Model):
+    homework = models.ForeignKey(Homework, on_delete=models.CASCADE, default="", verbose_name="作业")  # 关联作业，级联删除
+    submit_number = models.IntegerField(null=False, blank=False, default=0, verbose_name="提交份数")  # 作业提交的数目
+    time = models.DateTimeField(null=True, verbose_name="生成时间")  # 提交生成
+    result = models.URLField(null=True, default="", verbose_name="结果")  # 查重结果
+
+    class Meta:
+        verbose_name = "查重"
+        verbose_name_plural = "查重"
 
 
 # OJ题目

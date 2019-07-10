@@ -7,8 +7,8 @@ from django.shortcuts import render, redirect
 from django.shortcuts import get_object_or_404
 from django.core.mail import EmailMultiAlternatives
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import HttpResponse, StreamingHttpResponse, Http404
-import hashlib, datetime, json, os, zipfile, io, xlwt
+from django.http import HttpResponse, StreamingHttpResponse, Http404, HttpResponseForbidden
+import hashlib, datetime, json, os, zipfile, io, xlwt, filetype, codecs, mosspy, re
 
 
 # import sys
@@ -84,7 +84,7 @@ def send_email(email, confirm_string_code):
                     这是注册确认邮件！</p>
                     <p>请点击上方链接完成注册确认！</p>
                     <p>此链接有效期为{}天！</p>
-                    '''.format('162.105.17.143:2480', confirm_string_code, settings.CONFIRM_DAYS)
+                    '''.format(settings.SEVER_ADDRESS, confirm_string_code, settings.CONFIRM_DAYS)
     mail = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [email])
     mail.attach_alternative(html_content, "text/html")
     mail.send()
@@ -95,7 +95,7 @@ def resend_email(request, confirm_string_code, student_id):
     confirm_string = get_object_or_404(models.ConfirmString, code=confirm_string_code)
     student = get_object_or_404(models.Student, student_id=student_id)
     if confirm_string.student == student:
-        send_email(str(student_id) + '@pku.edu.cn', confirm_string.code)
+        send_email(str(student_id) + settings.EMAIL_POSTFIX, confirm_string.code)
         status = "重发"
         return render(request, 'homework/resend.html', locals())
     else:
@@ -131,7 +131,7 @@ def register(request):
                         same_id_student.save()
                         student = same_id_student
                         hashcode = make_confirm_string(same_id_student)  # 生成并保存验证码
-                        send_email(str(student_id) + '@pku.edu.cn', hashcode)  # 发送验证邮件
+                        send_email(str(student_id) + settings.EMAIL_POSTFIX, hashcode)  # 发送验证邮件
                         status = "更改密码"
                         return render(request, 'homework/resend.html', locals())
                 except ObjectDoesNotExist:
@@ -140,7 +140,7 @@ def register(request):
                     new_student.save()
                     student = new_student
                     hashcode = make_confirm_string(student)  # 生成并保存验证码
-                    send_email(str(student_id) + '@pku.edu.cn', hashcode)  # 发送验证邮件
+                    send_email(str(student_id) + settings.EMAIL_POSTFIX, hashcode)  # 发送验证邮件
                     status = "注册"
                     return render(request, 'homework/resend.html', locals())
                 finally:
@@ -183,16 +183,22 @@ def profile(request):
         homeworks = models.Homework.objects.all().order_by("id").values()
         submits = models.Submit.objects.filter(student=student)
         scores = models.Score.objects.filter(student=student)
-        # try:
-        #     moocScore = models.Mooc.objects.get(student=student)
-        # except:
-        #     pass
+        try:
+            moocScore = models.Mooc.objects.get(student=student)
+            moocScore = round(moocScore.final+0.5)
+        except:
+            pass
         for h in homeworks:
             for s in submits:
                 if h["id"] == s.homework_id:  # 作业与提交对应
                     h["last_submit"] = s.time
                     h["scored"] = s.scored
                     h["file_num"] = len(s.files.all())
+                    files = s.files.all()
+                    h["code"] = []
+                    for f in files:
+                        if ".py" in f.file.name:
+                            h["code"].append(f.id)
                     if s.late:
                         h["late"] = True
                     s.save()
@@ -226,7 +232,7 @@ def upload(request):
             student = models.Student.objects.get(student_id=student_id)
             homework = models.Homework.objects.get(id=homework_id)
             score = models.Score.objects.filter(homework=homework, student=student)
-            if score:
+            if datetime.datetime.now() > homework.cutoff and score:
                 data = {"success": False, "message": "已评分，不能提交！"}
                 return HttpResponse(json.dumps(data))
             if not student.elective:
@@ -244,9 +250,7 @@ def upload(request):
                             pass
                         finally:
                             f.delete()
-                    older[0].time = datetime.datetime.now()
                     older[0].times = older[0].times + 1
-                    older[0].save()
                     for f in files:
                         models.File.objects.create(submit=older[0], file=f)
                     models.Score.objects.filter(student=student, homework=homework).delete()  # 删除已有分数
@@ -263,6 +267,8 @@ def upload(request):
                         models.File.objects.create(submit=new_submit, file=f)
                 if datetime.datetime.now() > homework.cutoff:  # 若已过截止时间标记为补交
                     new_submit.late = True
+                else:
+                    new_submit.late = False
                 new_submit.scored = False
                 new_submit.time = datetime.datetime.now()
                 new_submit.save()
@@ -312,6 +318,28 @@ def download(request, homework_id):
         return response
 
 
+# 学生运行提交的代码
+def run_submit(request, file_id):
+    if request.session.get('is_login', None):
+        student_id = request.session.get("student_id", None)
+        file = get_object_or_404(models.File, id=file_id)
+        if file.submit.student.student_id == student_id:
+            the_file_name = file.file.name
+            title = the_file_name.split('/')[-1]
+            with open(the_file_name, 'r', encoding="utf8") as f:
+                code = f.read().replace(r"\n", "\\\\n")
+                if code[0] == codecs.BOM_UTF8.decode("utf8"):  # 去除UFT8-BOM隐藏字符
+                    code = code[1:]
+            return render(request, "homework/submit_run.html", locals())
+        else:
+            return HttpResponseForbidden()
+
+
+# 作业测试页面
+def test(request, homework_name):
+    return render(request, "homework/test/{}.html".format(homework_name), locals())
+
+
 # 助教登录
 def a_login(request):
     if request.session.get("a_login", None):  # 若已登录，重定向至个人页面
@@ -357,7 +385,7 @@ def a_register(request):
             secretcode = register_form.cleaned_data["secretCode"]
             password1 = register_form.cleaned_data["password1"]
             password2 = register_form.cleaned_data["password2"]
-            if secretcode != "长鲸白齿若雪山":  # 验证暗号
+            if secretcode != "一个暗号":  # 验证暗号
                 message = "有空猜这个孩子都能打酱油了"
                 return render(request, "homework/aregister.html", locals())
             if password1 != password2:  # 判断两次密码是否相同
@@ -414,6 +442,10 @@ def a_index(request):
                      "to_score_homework": to_score_homework, "homework_id": h.id})
         return render(request, "homework/aindex.html", locals())
     return redirect(reverse("a_login"))
+
+
+def get_media_url(file_name):
+    return file_name[file_name.index("media") + 6:]
 
 
 # 作业批量显示页面
@@ -475,14 +507,12 @@ def a_homeworks(request, tac, all_a, all_m, to_score, homework_id, assistant_id)
             s["previews"] = []
             s["downloads"] = []
             for f in submit.files.all():
-                if ".pdf" in f.file.name:
-                    s["previews"].append(reverse("pdf", args=(f.id,)))
-                elif ".py" in f.file.name:
+                if ".py" in f.file.name:
                     s["previews"].append(reverse("code", args=(f.id,)))
-                elif ".png" in f.file.name or ".jpg" in f.file.name or ".jpeg" in f.file.name:
-                    s["previews"].append(reverse("image", args=(f.id,)))
+                elif filetype.guess(f.file.name):
+                    s["previews"].append(reverse("media", args=(get_media_url(f.file.name),)))
                 else:
-                    s["downloads"].append(reverse("a_download", args=(f.id,)))
+                    s["downloads"].append(reverse("media", args=(get_media_url(f.file.name),)))
         return render(request, "homework/ahomeworks.html", locals())
 
 
@@ -561,14 +591,12 @@ def a_student(request, student_id):
                     h["previews"] = []
                     h["downloads"] = []
                     for f in s.files.all():
-                        if ".pdf" in f.file.name:
-                            h["previews"].append(reverse("pdf", args=(f.id,)))
-                        elif ".py" in f.file.name:
+                        if ".py" in f.file.name:
                             h["previews"].append(reverse("code", args=(f.id,)))
-                        elif ".png" in f.file.name or ".jpg" in f.file.name or ".jpeg" in f.file.name:
-                            h["previews"].append(reverse("image", args=(f.id,)))
+                        elif filetype.guess(f.file.name):
+                            h["previews"].append(reverse("media", args=(get_media_url(f.file.name),)))
                         else:
-                            h["downloads"].append(reverse("a_download", args=(f.id,)))
+                            h["downloads"].append(reverse("media", args=(get_media_url(f.file.name),)))
             for s in scores:
                 if s.homework.id == h["id"]:
                     h["score"] = s.score
@@ -589,49 +617,20 @@ def a_download(request, file_id):
 
 
 # 在线预览代码
-def code(request, file_id):
+def code_preview(request, file_id):
     if request.session.get("a_login", None):
         file = models.File.objects.get(id=file_id)
         the_file_name = file.file.name
         file_name = the_file_name.split('/')[-1]
         homework_name = file.submit.homework.name
         student_name = file.submit.student.name
-        just_code = file.submit.homework.just_code
-        with open(the_file_name, 'r') as f:
-            code = f.read()
+        run = file.submit.homework.run
+        just_code = file.submit.homework.just_code.replace(r"\n", "\\\\n")
+        with open(the_file_name, 'r', encoding="utf8") as f:
+            code = f.read().replace(r"\n", "\\\\n")
+            if code[0] == codecs.BOM_UTF8.decode("utf8"):  # 去除UFT8-BOM隐藏字符
+                code = code[1:]
         return render(request, "homework/code.html", locals())
-
-
-# 将pdf内容加入response返回
-def pdf_stream(request, file_id):
-    if request.session.get("a_login", None):
-        the_file_name = models.File.objects.get(id=file_id).file.name
-        response = StreamingHttpResponse(file_iterator(the_file_name))
-        response["Content-Type"] = "application/pdf"
-        response["Content-Disposition"] = "filename=" + parse.quote(the_file_name.split('/')[-1])
-        return response
-
-
-# 在线预览pdf
-def pdf(request, file_id):
-    if request.session.get("a_login", None):
-        file = models.File.objects.get(id=file_id)
-        the_file_name = file.file.name
-        file_name = the_file_name.split('/')[-1]
-        homework_name = file.submit.homework.name
-        student_name = file.submit.student.name
-    return render(request, "homework/pdf.html", locals())
-
-
-# 在线预览图片
-def image(request, file_id):
-    if request.session.get("a_login", None):
-        the_file_name = models.File.objects.get(id=file_id).file.name
-        response = StreamingHttpResponse(file_iterator(the_file_name))
-        response["Content-Type"] = "image"
-        response["Content-Disposition"] = "inline;filename=" + parse.quote(the_file_name.split('/')[-1])
-        response["Content-Length"] = os.path.getsize(the_file_name)
-        return response
 
 
 # 助教批量下载学生作业
@@ -646,7 +645,7 @@ def a_zip(request, tac, all_a, all_m, to_score, homework_id, assistant_id):
         # 根据参数决定显示哪些提交
         if tac:
             scores = models.Score.objects.filter(homework=homework, tac=True).order_by("student__student_id")
-            submits = models.Submit.objects.filter(homework="-1").values()
+            submits = models.Submit.objects.filter(homework="-1")
             for sc in scores:
                 submits = submits | models.Submit.objects.filter(homework=sc.homework, student=sc.student)
         else:
@@ -678,7 +677,7 @@ def a_zip(request, tac, all_a, all_m, to_score, homework_id, assistant_id):
                     fpath = '/'.join(p.split('/')[-2:])
                     z_file.write(os.path.join(root, file), fpath + '/' + file)
         z_file.close()
-        with open(z_name, "rb") as  z_file:
+        with open(z_name, "rb") as z_file:
             data = z_file.read()
         os.remove(z_file.name)
         response = HttpResponse(data, content_type="application/zip")
@@ -713,10 +712,15 @@ def get_excel(request):
                 line.append(str(score.score))
             except:
                 line.append('-')
+        try:
+            mooc = models.Mooc.objects.get(student=s)
+            line.append(mooc.final)
+        except:
+            line.append('-')
         lines.append(line)
     file = xlwt.Workbook()
     table = file.add_sheet("this", cell_overwrite_ok=True)
-    title = ["学号", "姓名", "学院"] + [h.name for h in homeworks]
+    title = ["学号", "姓名", "学院"] + [h.name for h in homeworks] + ['MOOC']
     for col, t in enumerate(title):
         table.write(0, col, t)
     for row, line in enumerate(lines):
@@ -733,6 +737,47 @@ def get_excel(request):
     os.remove(file_name)
     return response
 
+
+def duplicate_check(request, homework_id):
+    if request.session.get("a_login", None):
+        if homework_id == "!":
+            homeworks = models.Homework.objects.all()
+            return render(request, "homework/duplicate.html", locals())
+        else:
+            homework_id = int(homework_id)
+            homework = get_object_or_404(models.Homework, id=homework_id)
+            duplicate = models.DuplicateCheck.objects.filter(homework=homework)
+            now = datetime.datetime.now()
+            if len(duplicate) == 0:
+                duplicate = models.DuplicateCheck.objects.create(homework=homework, time=now)
+            else:
+                duplicate = duplicate[0]
+            submits_number = len(homework.submits.all())
+            effective = now < duplicate.time + datetime.timedelta(settings.MOSS_DAYS)
+            if submits_number == duplicate.submit_number and effective:
+                if re.match(r'^http?:/{2}\w.+$', duplicate.result):
+                    return redirect(duplicate.result)
+                else:
+                    return HttpResponse(u"此次作业没有py文件可以查重")
+            else:
+                userid = settings.MOSS_ID
+                m = mosspy.Moss(userid, "python")
+                media_path = settings.MEDIA_ROOT
+                homework_path = os.path.join(media_path, homework.name)
+                submit_dirs = [p for p in os.listdir(homework_path) if os.path.isdir(os.path.join(homework_path, p))]
+                if os.path.exists(os.path.join(media_path, "{}.py".format(homework.name))):
+                    m.addBaseFile(os.path.join(media_path, "{}.py".format(homework.name)))
+                for s in submit_dirs:
+                    m.addFilesByWildcard(os.path.join(homework_path, s, "*.py"))
+                url = m.send()
+                duplicate.result = url
+                duplicate.time = datetime.datetime.now()
+                duplicate.submit_number = submits_number
+                duplicate.save()
+                if re.match(r'^http?:/{2}\w.+$', url):
+                    return redirect(url)
+                else:
+                    return HttpResponse(u"此次作业没有py文件可以查重")
 # OJ页面
 # def oj(request):
 #     if request.session.get("is_login", None):  # 若session保持登录，跳转至OJ页面

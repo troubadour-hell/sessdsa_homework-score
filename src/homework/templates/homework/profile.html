@@ -67,8 +67,8 @@
         }
     </style>
 </head>
-<body>
-<nav class="navbar navbar-expand-lg navbar-expand-sm navbar-expand-md navbar-light bg-light">
+<body style="height:100vh;width:100vw">
+<nav class="navbar navbar-expand-lg navbar-expand-sm navbar-expand-md navbar-expand-x navbar-light bg-light">
     <div class="navbar-brand">
         <img src="{% static "images/dsa.png" %}" width="35" height="35" class="d-inline-block align-center" alt=""> 数据结构与算法
     </div>
@@ -119,12 +119,15 @@
                                 {% endif %}
                                 {% if h.last_submit %}
                                     <td style="vertical-align: middle">
-                                        <a href="{% url "download" h.id %}">{{ h.file_num }}个文件</a>
+                                        <a href="{% url "download" h.id %}">{{ h.file_num }}个文件</a>&nbsp;
+                                    {% if h.code %}
+                                        <a href="{% url "profile" %}" onclick="{% for file_id in h.code %}window.open('{% url "run_submit" file_id %}', '_blank');{% endfor %}">run</a>
+                                    {% endif %}
                                     </td>
                                 {% else %}
                                     <td id="{{ h.id }}_isSubmit" style="vertical-align: middle">未提交</td>
                                 {% endif %}
-                                {% if h.score %}
+                                {% if h.scored %}
                                     <td style="vertical-align: middle">{{ h.score }}
                                     {% if h.tac %}
                                             <span class="badge badge-success">tac</span>
@@ -164,9 +167,9 @@
                                     <script>
                                         initFileInput('{{ h.id }}_upload', '{{ h.id }}', '{{ h.id }}_isSubmit', eval({{ h.file_type|safe }}));
                                     </script>
-                                    {% if h.scored %}
-                                        <td style="vertical-align: middle">已评分</td>
-                                    {% elif h.late_submit %}
+{#                                    {% if h.scored %}#}
+{#                                        <td style="vertical-align: middle">已评分</td>#}
+                                    {% if h.late_submit %}
                                         <td id="{{ h.id }}_upload_late" style="vertical-align: middle">
                                             <button sype="button" class="btn btn-danger btn-sm"
                                                     onclick="submit_late('{{ h.id }}_upload', '{{ h.id }}', '{{ h.id }}_isSubmit')"
@@ -186,11 +189,22 @@
                                 {% endif %}
                             </tr>
                         {% endfor %}
+                        <tr>
+                            <td>Mooc</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td>{{ moocScore }}</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
                     </table>
                 </div>
             </div>
         </div>
     </div>
+
 
     {#    <div style="padding-top:5vh;padding-left:5vw;padding-right:5vw">#}
     {#        <h3 style="float:left;">慕课成绩</h3>#}
@@ -218,6 +232,19 @@
     {#        </table>#}
     {#    </div>#}
     <div class="row">
+        <div class="col-12">
+            <div class="panel">
+                <div class="panel-heading">
+                    <h6 class="panel-title">代码测试</h6>
+                </div>
+                <div class="panel-body">
+                    <a href="{% url "test" "h4" %}">h4测试</a>
+                    <a href="{% url "test" "h6" %}">h6测试</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
         <div class="col-lg-4 offset-lg-8 col-sm-12">
             <div class="alert alert-link alert-dismissible" role="alert">
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
@@ -227,6 +254,7 @@
                 <p>✎ 文件不要压缩打包，直接上传所有需要提交的文件</p>
                 <p>✎ 上传组件不支持IE，请用Chrome或Firefox打开</p>
                 <p>✎ 补交关闭时间在下一次作业截止（进入补交）时间</p>
+                <p>✎ 有网站相关问题联系助教冀锐</p>
             </div>
         </div>
     </div>
@@ -256,5 +284,6 @@
         }
     })
 </script>
+<script type="text/javascript" color="0,0,255" zIndex="-2" count="99" opacity="0.7" src="{% static "canvas-nest/canvas-nest.js" %}"></script>
 </body>
 </html>

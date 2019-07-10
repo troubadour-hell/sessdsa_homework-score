@@ -30,7 +30,7 @@
         function submit_score(submitId, submitTime) {
             var score = $("#" + submitId + "_score").val();
             if (score == "") {
-               score = 0
+                score = 0
             }
             var tac = $("#" + submitId + "_tac").prop("checked");
             var comment = $("#" + submitId + "_comment").val();
@@ -54,7 +54,7 @@
                         $("#" + submitId + "_comment").attr("placeholder", data["comment"]);
                         $("#" + submitId + "_assistant").text(data["assistant"]);
                         $("#" + submitId + "_tac").prop("checked", data["tac"]);
-                        $("#" + submitId + "_score").rating('update',data["score"]);
+                        $("#" + submitId + "_score").rating('update', data["score"]);
                     } else {
                         alert(data["message"]);
                         location.reload()
@@ -62,15 +62,18 @@
                 }
             });
         }
+
         function change(radio_id) {
             var status = $('#' + radio_id).prop("checked");
-            if (status){
+            if (status) {
                 $('#' + radio_id).removeAttr("checked")
             }
-            else{
+            else {
                 $('#' + radio_id).prop("checked", true);
             }
         }
+
+
     </script>
     <style>$enable-responsive-font-sizes:true;</style>
 </head>
@@ -136,25 +139,23 @@
                         </td>
                         <td style="vertical-align: middle">
                             <button type="button" class="btn btn-link">
-                                <a onclick="for(var i=0;i< {{ s.downloads }}.length;i++){window.open({{ s.downloads }}[i], '_blank').location;}">{{ s.downloads|length }}
-                                    个文件</a>
+                                <a onclick="{% for url in s.downloads %}window.open('{{ url }}', '_blank');{% endfor %}">{{ s.downloads|length }}个文件</a>
                             </button>
                         </td>
                         <td style="vertical-align: middle">
                             <button type="button" class="btn btn-link">
-                                <a onclick="for(var i=0;i< {{ s.previews }}.length;i++){window.open({{ s.previews }}[i], '_blank').location;}">{{ s.previews|length }}
-                                    可预览</a>
+                                <a onclick="{% for url in s.previews %}window.open('{{ url }}', '_blank');{% endfor %}">{{ s.previews|length }}可预览</a>
                             </button>
                         </td>
                         <td style="vertical-align: middle">
                             <input id="{{ s.id }}_score" type="number" class="rating" min=0 max=5 step=1 data-size="xs">
                             <script type="application/javascript">
-                                $("#{{ s.id }}_score").rating({showCaption:false,animate:false,clearValue:0});
-                                $("#{{ s.id }}_score").rating('update',{{ s.score }});
+                                $("#{{ s.id }}_score").rating({showCaption: false, animate: false, clearValue: 0});
+                                $("#{{ s.id }}_score").rating('update', {{ s.score }});
                             </script>
                         </td>
                         <td style="vertical-align: middle">
-                            <input id="{{ s.id }}_tac"  class="checkbox" type="checkbox" style="width: 20px;height:20px">
+                            <input id="{{ s.id }}_tac" class="checkbox" type="checkbox" style="width: 20px;height:20px">
                             <script type="application/javascript">
                                 {%  if s.tac %}
                                     $("#{{ s.id }}_tac").prop("checked", true);

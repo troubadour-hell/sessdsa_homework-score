@@ -35,7 +35,9 @@ class SubmitAdmin(admin.ModelAdmin):
 
 @admin.register(File)
 class FileAdmin(admin.ModelAdmin):
-    list_display = ('student_name', 'student_name', 'homework_name')
+    list_display = ('id', 'student_name', 'student_name', 'homework_name')
+    search_fields = ['id', 'submit__student__id', 'submit__student__name']
+    list_filter = ["submit__homework"]
 
     def student_id(self, obj):
         return obj.submit.student.student_id
@@ -52,7 +54,7 @@ class HomeWorkAdmin(admin.ModelAdmin):
     list_display = ('name', 'cutoff')
     formfield_overrides = {
         models.CharField: {'widget': TextInput(attrs={'size': '20'})},
-        models.TextField: {'widget': Textarea(attrs={'rows': 5, 'cols': 80, 'style': 'resize:none'})},
+        models.TextField: {'widget': Textarea(attrs={'rows': 20, 'cols': 80, 'style': 'resize:none'})},
     }
 
 
@@ -80,13 +82,21 @@ class ScoreAdmin(admin.ModelAdmin):
 @admin.register(Mooc)
 class MoocAdmin(admin.ModelAdmin):
     search_fields = ['student__name']
-    list_display = ['student_name', 'student_id', 'chapter_1', 'chapter_2', 'chapter_3', 'chapter_4']
+    list_display = ['student_name', 'student_id', 'test', 'homework', 'exam', 'discuss', 'final']
 
     def student_id(self, obj):
         return obj.student.student_id
 
     def student_name(self, obj):
         return obj.student.name
+
+
+@admin.register(DuplicateCheck)
+class DuplicateAdmin(admin.ModelAdmin):
+    list_display = ["homework_name", "time", "result"]
+
+    def homework_name(self, obj):
+        return obj.homework.name
 
 
 # @admin.register(OJ)
